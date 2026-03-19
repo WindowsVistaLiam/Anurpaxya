@@ -1,0 +1,23 @@
+{
+  "name": "anurpaxya",
+  "version": "1.0.0",
+  "description": "Bot Discord RP avec profils et système de Souillure",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "deploy": "node src/deploy-commands.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.24.0",
+    "dotenv": "^16.6.1",
+    "mongodb": "^7.1.0",
+    "mongoose": "^8.19.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

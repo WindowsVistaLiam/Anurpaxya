@@ -7,6 +7,7 @@ const { connectDatabase } = require('./config/database');
 const registerModals = require('./events/registerModals');
 const registerProfileNavigation = require('./events/registerProfileNavigation');
 const registerTradeInteractions = require('./events/registerTradeInteractions');
+const registerShopNavigation = require('./events/registerShopNavigation');
 
 const client = new Client({
   intents: [
@@ -57,7 +58,8 @@ if (fs.existsSync(eventsPath)) {
       file.endsWith('.js') &&
       file !== 'registerModals.js' &&
       file !== 'registerProfileNavigation.js' &&
-      file !== 'registerTradeInteractions.js'
+      file !== 'registerTradeInteractions.js' &&
+      file !== 'registerShopNavigation.js'
   );
 
   for (const file of eventFiles) {
@@ -75,6 +77,7 @@ if (fs.existsSync(eventsPath)) {
 registerModals(client);
 registerProfileNavigation(client);
 registerTradeInteractions(client);
+registerShopNavigation(client);
 
 (async () => {
   await connectDatabase();

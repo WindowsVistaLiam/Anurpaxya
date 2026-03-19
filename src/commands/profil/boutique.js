@@ -1,11 +1,7 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 const ShopItem = require('../../models/ShopItem');
-
-function truncate(text, maxLength) {
-  if (!text) return 'Aucune description.';
-  if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength - 3) + '...';
-}
+const { ITEMS_PER_PAGE, buildShopEmbed } = require('../../utils/shopEmbeds');
+const { buildShopNavigationRow } = require('../../utils/shopComponents');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -43,29 +39,22 @@ module.exports = {
       return;
     }
 
-    const embed = new EmbedBuilder()
-      .setTitle('🛒 Boutique')
-      .setDescription(
-        items
-          .slice(0, 20)
-          .map(item =>
-            [
-              `**${item.name}** \`(${item.itemId})\``,
-              `${truncate(item.description, 120)}`,
-              `💰 Achat : **${item.buyPrice}** • 💸 Vente : **${item.sellPrice}** • 📦 Stock : **${item.stock === -1 ? 'Illimité' : item.stock}** • 🗂️ ${item.category}`
-            ].join('\n')
-          )
-          .join('\n\n')
-      )
-      .setFooter({
-        text: items.length > 20
-          ? `Affichage des 20 premiers articles sur ${items.length}`
-          : `${items.length} article(s)`
-      })
-      .setTimestamp();
+    const page = 1;
+    const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
+
+    const embed = buildShopEmbed({
+      items,
+      page,
+      totalPages,
+      category,
+      guildName: interaction.guild?.name || 'Serveur RP'
+    });
+
+    const components = [buildShopNavigationRow(page, totalPages, category || 'all')];
 
     await interaction.reply({
-      embeds: [embed]
+      embeds: [embed],
+      components
     });
   }
 };

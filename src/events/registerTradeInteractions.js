@@ -1,6 +1,5 @@
 const Profile = require('../models/Profile');
 const { getTrade, deleteTrade, isTradeExpired } = require('../utils/tradeStore');
-const { buildTradeActionRow } = require('../utils/tradeComponents');
 
 module.exports = function registerTradeInteractions(client) {
   client.on('interactionCreate', async interaction => {
@@ -57,14 +56,15 @@ module.exports = function registerTradeInteractions(client) {
       if (trade.type === 'money') {
         const senderProfile = await Profile.findOne({
           guildId: trade.guildId,
-          userId: trade.senderId
+          userId: trade.senderId,
+          slot: trade.senderSlot
         });
 
         if (!senderProfile) {
           deleteTrade(tradeId);
 
           await interaction.update({
-            content: '❌ Le profil du donneur est introuvable. Échange annulé.',
+            content: '❌ Le profil donneur est introuvable. Échange annulé.',
             components: []
           });
 
@@ -75,7 +75,7 @@ module.exports = function registerTradeInteractions(client) {
           deleteTrade(tradeId);
 
           await interaction.update({
-            content: '❌ Le donneur ne possède plus assez d’argent. Échange annulé.',
+            content: '❌ Le donneur ne possède plus assez d’argent sur ce profil. Échange annulé.',
             components: []
           });
 
@@ -84,13 +84,15 @@ module.exports = function registerTradeInteractions(client) {
 
         let receiverProfile = await Profile.findOne({
           guildId: trade.guildId,
-          userId: trade.receiverId
+          userId: trade.receiverId,
+          slot: trade.receiverSlot
         });
 
         if (!receiverProfile) {
           receiverProfile = await Profile.create({
             guildId: trade.guildId,
-            userId: trade.receiverId
+            userId: trade.receiverId,
+            slot: trade.receiverSlot
           });
         }
 
@@ -105,7 +107,8 @@ module.exports = function registerTradeInteractions(client) {
         await interaction.update({
           content:
             `✅ Échange accepté.\n` +
-            `**${trade.amount}** pièces ont été transférées à <@${trade.receiverId}>.`,
+            `**${trade.amount}** pièces ont été transférées du **slot ${trade.senderSlot}** de <@${trade.senderId}> ` +
+            `vers le **slot ${trade.receiverSlot}** de <@${trade.receiverId}>.`,
           components: []
         });
 
@@ -115,14 +118,15 @@ module.exports = function registerTradeInteractions(client) {
       if (trade.type === 'item') {
         const senderProfile = await Profile.findOne({
           guildId: trade.guildId,
-          userId: trade.senderId
+          userId: trade.senderId,
+          slot: trade.senderSlot
         });
 
         if (!senderProfile) {
           deleteTrade(tradeId);
 
           await interaction.update({
-            content: '❌ Le profil du donneur est introuvable. Échange annulé.',
+            content: '❌ Le profil donneur est introuvable. Échange annulé.',
             components: []
           });
 
@@ -137,7 +141,7 @@ module.exports = function registerTradeInteractions(client) {
           deleteTrade(tradeId);
 
           await interaction.update({
-            content: '❌ Le donneur ne possède plus assez de cet objet. Échange annulé.',
+            content: '❌ Le donneur ne possède plus assez de cet objet sur ce profil. Échange annulé.',
             components: []
           });
 
@@ -146,13 +150,15 @@ module.exports = function registerTradeInteractions(client) {
 
         let receiverProfile = await Profile.findOne({
           guildId: trade.guildId,
-          userId: trade.receiverId
+          userId: trade.receiverId,
+          slot: trade.receiverSlot
         });
 
         if (!receiverProfile) {
           receiverProfile = await Profile.create({
             guildId: trade.guildId,
-            userId: trade.receiverId
+            userId: trade.receiverId,
+            slot: trade.receiverSlot
           });
         }
 
@@ -185,7 +191,8 @@ module.exports = function registerTradeInteractions(client) {
         await interaction.update({
           content:
             `✅ Échange accepté.\n` +
-            `**${trade.itemName}** ×${trade.quantity} a été transféré à <@${trade.receiverId}>.`,
+            `**${trade.itemName}** ×${trade.quantity} a été transféré du **slot ${trade.senderSlot}** de <@${trade.senderId}> ` +
+            `vers le **slot ${trade.receiverSlot}** de <@${trade.receiverId}>.`,
           components: []
         });
 

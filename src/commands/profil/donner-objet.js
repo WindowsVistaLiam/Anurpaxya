@@ -1,8 +1,14 @@
 const { SlashCommandBuilder } = require('discord.js');
 const crypto = require('crypto');
-const Profile = require('../../models/Profile');
-const { createTrade, deleteTrade } = require('../../utils/tradeStore');
+const {
+  createTrade,
+  deleteTrade
+} = require('../../utils/tradeStore');
 const { buildTradeActionRow } = require('../../utils/tradeComponents');
+const {
+  getActiveSlot,
+  getProfileBySlot
+} = require('../../services/profileService');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -50,14 +56,18 @@ module.exports = {
       return;
     }
 
-    const senderProfile = await Profile.findOne({
-      guildId: interaction.guildId,
-      userId: interaction.user.id
-    });
+    const senderSlot = await getActiveSlot(interaction.guildId, interaction.user.id);
+    const receiverSlot = await getActiveSlot(interaction.guildId, targetUser.id);
+
+    const senderProfile = await getProfileBySlot(
+      interaction.guildId,
+      interaction.user.id,
+      senderSlot
+    );
 
     if (!senderProfile) {
       await interaction.reply({
-        content: 'Tu n’as pas encore de profil. Utilise `/profil` pour le créer.',
+        content: 'Tu n’as pas encore de profil actif valide. Utilise `/profil` ou `/profil-switch`.',
         ephemeral: true
       });
       return;
@@ -69,7 +79,7 @@ module.exports = {
 
     if (!senderItem) {
       await interaction.reply({
-        content: `Tu ne possèdes pas l’objet **${nom}**.`,
+        content: `Tu ne possèdes pas l’objet **${nom}** sur ton **profil actif (slot ${senderSlot})**.`,
         ephemeral: true
       });
       return;
@@ -78,7 +88,7 @@ module.exports = {
     if (senderItem.quantity < quantite) {
       await interaction.reply({
         content:
-          `Tu n’as pas assez de **${nom}**.\n` +
+          `Tu n’as pas assez de **${nom}** sur ton **profil actif (slot ${senderSlot})**.\n` +
           `Quantité disponible : **${senderItem.quantity}**.`,
         ephemeral: true
       });
@@ -93,7 +103,9 @@ module.exports = {
       type: 'item',
       guildId: interaction.guildId,
       senderId: interaction.user.id,
+      senderSlot,
       receiverId: targetUser.id,
+      receiverSlot,
       itemName: nom,
       quantity: quantite,
       expiresAt
@@ -105,7 +117,8 @@ module.exports = {
 
     await interaction.reply({
       content:
-        `🎒 <@${interaction.user.id}> propose de donner **${nom}** ×${quantite} à <@${targetUser.id}>.\n` +
+        `🎒 <@${interaction.user.id}> propose de donner **${nom}** ×${quantite} ` +
+        `depuis son **slot ${senderSlot}** à <@${targetUser.id}> sur son **slot ${receiverSlot}**.\n` +
         `⏳ Cette demande expire dans **60 secondes**.`,
       components: [buildTradeActionRow(tradeId)]
     });

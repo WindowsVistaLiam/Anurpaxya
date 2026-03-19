@@ -1,8 +1,15 @@
 const { SlashCommandBuilder } = require('discord.js');
 const crypto = require('crypto');
 const Profile = require('../../models/Profile');
-const { createTrade, deleteTrade } = require('../../utils/tradeStore');
+const {
+  createTrade,
+  deleteTrade
+} = require('../../utils/tradeStore');
 const { buildTradeActionRow } = require('../../utils/tradeComponents');
+const {
+  getActiveSlot,
+  getProfileBySlot
+} = require('../../services/profileService');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -42,14 +49,18 @@ module.exports = {
       return;
     }
 
-    const senderProfile = await Profile.findOne({
-      guildId: interaction.guildId,
-      userId: interaction.user.id
-    });
+    const senderSlot = await getActiveSlot(interaction.guildId, interaction.user.id);
+    const receiverSlot = await getActiveSlot(interaction.guildId, targetUser.id);
+
+    const senderProfile = await getProfileBySlot(
+      interaction.guildId,
+      interaction.user.id,
+      senderSlot
+    );
 
     if (!senderProfile) {
       await interaction.reply({
-        content: 'Tu n’as pas encore de profil. Utilise `/profil` pour le créer.',
+        content: `Tu n’as pas encore de profil actif valide. Utilise \`/profil\` ou \`/profil-switch\`.`,
         ephemeral: true
       });
       return;
@@ -57,7 +68,9 @@ module.exports = {
 
     if ((senderProfile.wallet || 0) < montant) {
       await interaction.reply({
-        content: `Tu n’as pas assez d’argent. Ton portefeuille actuel est de **${senderProfile.wallet || 0}** pièces.`,
+        content:
+          `Tu n’as pas assez d’argent sur ton **profil actif (slot ${senderSlot})**.\n` +
+          `Portefeuille actuel : **${senderProfile.wallet || 0}** pièces.`,
         ephemeral: true
       });
       return;
@@ -71,7 +84,9 @@ module.exports = {
       type: 'money',
       guildId: interaction.guildId,
       senderId: interaction.user.id,
+      senderSlot,
       receiverId: targetUser.id,
+      receiverSlot,
       amount: montant,
       expiresAt
     });
@@ -82,7 +97,8 @@ module.exports = {
 
     await interaction.reply({
       content:
-        `💸 <@${interaction.user.id}> propose de donner **${montant}** pièces à <@${targetUser.id}>.\n` +
+        `💸 <@${interaction.user.id}> propose de donner **${montant}** pièces ` +
+        `depuis son **slot ${senderSlot}** à <@${targetUser.id}> sur son **slot ${receiverSlot}**.\n` +
         `⏳ Cette demande expire dans **60 secondes**.`,
       components: [buildTradeActionRow(tradeId)]
     });

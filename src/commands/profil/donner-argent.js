@@ -1,10 +1,13 @@
 const { SlashCommandBuilder } = require('discord.js');
+const crypto = require('crypto');
 const Profile = require('../../models/Profile');
+const { createTrade, deleteTrade } = require('../../utils/tradeStore');
+const { buildTradeActionRow } = require('../../utils/tradeComponents');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('donner-argent')
-    .setDescription('Donner de l’argent à un autre joueur')
+    .setDescription('Proposer de donner de l’argent à un autre joueur')
     .addUserOption(option =>
       option
         .setName('utilisateur')
@@ -39,7 +42,7 @@ module.exports = {
       return;
     }
 
-    let senderProfile = await Profile.findOne({
+    const senderProfile = await Profile.findOne({
       guildId: interaction.guildId,
       userId: interaction.user.id
     });
@@ -60,29 +63,28 @@ module.exports = {
       return;
     }
 
-    let receiverProfile = await Profile.findOne({
+    const tradeId = crypto.randomUUID();
+    const expiresAt = Date.now() + 60_000;
+
+    createTrade({
+      id: tradeId,
+      type: 'money',
       guildId: interaction.guildId,
-      userId: targetUser.id
+      senderId: interaction.user.id,
+      receiverId: targetUser.id,
+      amount: montant,
+      expiresAt
     });
 
-    if (!receiverProfile) {
-      receiverProfile = await Profile.create({
-        guildId: interaction.guildId,
-        userId: targetUser.id
-      });
-    }
-
-    senderProfile.wallet -= montant;
-    receiverProfile.wallet = (receiverProfile.wallet || 0) + montant;
-
-    await senderProfile.save();
-    await receiverProfile.save();
+    setTimeout(() => {
+      deleteTrade(tradeId);
+    }, 60_000);
 
     await interaction.reply({
       content:
-        `✅ Tu as donné **${montant}** pièces à **${targetUser.username}**.\n` +
-        `Ton nouveau portefeuille : **${senderProfile.wallet}** pièces.`,
-      ephemeral: true
+        `💸 <@${interaction.user.id}> propose de donner **${montant}** pièces à <@${targetUser.id}>.\n` +
+        `⏳ Cette demande expire dans **60 secondes**.`,
+      components: [buildTradeActionRow(tradeId)]
     });
   }
 };

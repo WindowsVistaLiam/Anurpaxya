@@ -1,10 +1,13 @@
 const { SlashCommandBuilder } = require('discord.js');
+const crypto = require('crypto');
 const Profile = require('../../models/Profile');
+const { createTrade, deleteTrade } = require('../../utils/tradeStore');
+const { buildTradeActionRow } = require('../../utils/tradeComponents');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('donner-objet')
-    .setDescription('Donner un objet de ton inventaire à un autre joueur')
+    .setDescription('Proposer de donner un objet de ton inventaire à un autre joueur')
     .addUserOption(option =>
       option
         .setName('utilisateur')
@@ -82,47 +85,29 @@ module.exports = {
       return;
     }
 
-    let receiverProfile = await Profile.findOne({
+    const tradeId = crypto.randomUUID();
+    const expiresAt = Date.now() + 60_000;
+
+    createTrade({
+      id: tradeId,
+      type: 'item',
       guildId: interaction.guildId,
-      userId: targetUser.id
+      senderId: interaction.user.id,
+      receiverId: targetUser.id,
+      itemName: nom,
+      quantity: quantite,
+      expiresAt
     });
 
-    if (!receiverProfile) {
-      receiverProfile = await Profile.create({
-        guildId: interaction.guildId,
-        userId: targetUser.id
-      });
-    }
-
-    senderItem.quantity -= quantite;
-
-    if (senderItem.quantity <= 0) {
-      senderProfile.inventory = senderProfile.inventory.filter(
-        item => item.name.toLowerCase() !== nom.toLowerCase()
-      );
-    }
-
-    const receiverItem = receiverProfile.inventory.find(
-      item => item.name.toLowerCase() === nom.toLowerCase()
-    );
-
-    if (receiverItem) {
-      receiverItem.quantity += quantite;
-    } else {
-      receiverProfile.inventory.push({
-        name: nom,
-        quantity: quantite
-      });
-    }
-
-    await senderProfile.save();
-    await receiverProfile.save();
+    setTimeout(() => {
+      deleteTrade(tradeId);
+    }, 60_000);
 
     await interaction.reply({
       content:
-        `✅ Tu as donné **${nom}** ×${quantite} à **${targetUser.username}**.\n` +
-        `Transfert effectué avec succès.`,
-      ephemeral: true
+        `🎒 <@${interaction.user.id}> propose de donner **${nom}** ×${quantite} à <@${targetUser.id}>.\n` +
+        `⏳ Cette demande expire dans **60 secondes**.`,
+      components: [buildTradeActionRow(tradeId)]
     });
   }
 };

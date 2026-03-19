@@ -1,4 +1,5 @@
 const Profile = require('../models/Profile');
+const { setActiveSlot } = require('../services/profileService');
 
 function isValidImageUrl(url) {
   if (!url) return false;
@@ -14,14 +15,23 @@ function isValidImageUrl(url) {
 module.exports = function registerModals(client) {
   client.on('interactionCreate', async interaction => {
     if (!interaction.isModalSubmit()) return;
-    if (!interaction.customId.startsWith('profile_create_')) return;
+    if (!interaction.customId.startsWith('profile_create:')) return;
 
     try {
-      const ownerId = interaction.customId.replace('profile_create_', '');
+      const [, ownerId, rawSlot] = interaction.customId.split(':');
+      const slot = Number(rawSlot);
 
       if (interaction.user.id !== ownerId) {
         await interaction.reply({
           content: 'Ce modal ne t’appartient pas.',
+          ephemeral: true
+        });
+        return;
+      }
+
+      if (![1, 2, 3].includes(slot)) {
+        await interaction.reply({
+          content: 'Slot de profil invalide.',
           ephemeral: true
         });
         return;
@@ -43,17 +53,20 @@ module.exports = function registerModals(client) {
 
       const existedBefore = await Profile.exists({
         guildId: interaction.guildId,
-        userId: interaction.user.id
+        userId: interaction.user.id,
+        slot
       });
 
       await Profile.findOneAndUpdate(
         {
           guildId: interaction.guildId,
-          userId: interaction.user.id
+          userId: interaction.user.id,
+          slot
         },
         {
           guildId: interaction.guildId,
           userId: interaction.user.id,
+          slot,
           nomPrenom,
           ageGenre,
           pouvoir,
@@ -67,10 +80,12 @@ module.exports = function registerModals(client) {
         }
       );
 
+      await setActiveSlot(interaction.guildId, interaction.user.id, slot);
+
       await interaction.reply({
         content: existedBefore
-          ? '✅ Ton profil RP a bien été modifié.'
-          : '✅ Ton profil RP a bien été créé.',
+          ? `✅ Ton profil RP du **slot ${slot}** a bien été modifié et défini comme profil actif.`
+          : `✅ Ton profil RP du **slot ${slot}** a bien été créé et défini comme profil actif.`,
         ephemeral: true
       });
     } catch (error) {

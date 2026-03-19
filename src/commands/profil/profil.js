@@ -5,22 +5,43 @@ const {
   TextInputStyle,
   ActionRowBuilder
 } = require('discord.js');
-const Profile = require('../../models/Profile');
+const {
+  getActiveSlot,
+  getProfileBySlot,
+  getNextAvailableSlot,
+  MAX_PROFILE_SLOTS,
+  ensureActiveState
+} = require('../../services/profileService');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('profil')
-    .setDescription('Créer ou modifier ton profil RP'),
+    .setDescription('Créer ou modifier ton profil RP actif'),
 
   async execute(interaction) {
-    const existingProfile = await Profile.findOne({
-      guildId: interaction.guildId,
-      userId: interaction.user.id
-    }).lean();
+    await ensureActiveState(interaction.guildId, interaction.user.id);
+
+    const activeSlot = await getActiveSlot(interaction.guildId, interaction.user.id);
+    let existingProfile = await getProfileBySlot(interaction.guildId, interaction.user.id, activeSlot);
+    let targetSlot = activeSlot;
+
+    if (!existingProfile) {
+      const nextSlot = await getNextAvailableSlot(interaction.guildId, interaction.user.id);
+
+      if (!nextSlot) {
+        await interaction.reply({
+          content: `Tu as déjà atteint la limite de **${MAX_PROFILE_SLOTS} profils**. Utilise \`/profil-switch\` pour changer de profil actif puis \`/profil\` pour le modifier.`,
+          ephemeral: true
+        });
+        return;
+      }
+
+      targetSlot = nextSlot;
+    }
 
     const modal = new ModalBuilder()
-      .setCustomId(`profile_create_${interaction.user.id}`)
-      .setTitle(existingProfile ? 'Modification du profil RP' : 'Création du profil RP');
+      .setCustomId(`profile_create:${interaction.user.id}:${targetSlot}`)
+      .setTitle(existingProfile ? `Modification du profil RP • Slot ${targetSlot}` : `Création du profil RP • Slot ${targetSlot}`);
 
     const fullNameInput = new TextInputBuilder()
       .setCustomId('full_name')

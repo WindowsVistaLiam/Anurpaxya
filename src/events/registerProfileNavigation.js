@@ -14,20 +14,16 @@ module.exports = function registerProfileNavigation(client) {
     }
 
     try {
-      const [action, targetUserId, rawPage] = interaction.customId.split(':');
-      let page = Number(rawPage) || 1;
+      const parts = interaction.customId.split(':');
+      const action = parts[0];
+      const targetUserId = parts[1];
+      const slot = Number(parts[2]);
+      const rawPage = Number(parts[3]);
+      let page = rawPage || 1;
 
-      if (action === 'profile_prev') {
-        page = Math.max(1, page - 1);
-      }
-
-      if (action === 'profile_next') {
-        page = Math.min(3, page + 1);
-      }
-
-      if (action === 'profile_page') {
-        page = Math.min(3, Math.max(1, Number(rawPage) || 1));
-      }
+      if (action === 'profile_prev') page = Math.max(1, page - 1);
+      if (action === 'profile_next') page = Math.min(3, page + 1);
+      if (action === 'profile_page') page = Math.min(3, Math.max(1, Number(parts[3]) || 1));
 
       const targetUser = await client.users.fetch(targetUserId).catch(() => null);
 
@@ -41,7 +37,8 @@ module.exports = function registerProfileNavigation(client) {
 
       const profile = await Profile.findOne({
         guildId: interaction.guildId,
-        userId: targetUserId
+        userId: targetUserId,
+        slot
       }).lean();
 
       if (!profile) {
@@ -53,7 +50,7 @@ module.exports = function registerProfileNavigation(client) {
       }
 
       const embed = buildProfileEmbed(profile, targetUser, interaction.guild, page);
-      const components = [buildProfileNavigationRow(targetUserId, page)];
+      const components = [buildProfileNavigationRow(targetUserId, slot, page)];
 
       await interaction.update({
         embeds: [embed],

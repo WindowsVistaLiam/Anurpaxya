@@ -27,6 +27,12 @@ const profileSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    slot: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 3
+    },
     nomPrenom: {
       type: String,
       default: ''
@@ -77,6 +83,6 @@ const profileSchema = new mongoose.Schema(
   }
 );
 
-profileSchema.index({ guildId: 1, userId: 1 }, { unique: true });
+profileSchema.index({ guildId: 1, userId: 1, slot: 1 }, { unique: true });
 
 module.exports = mongoose.model('Profile', profileSchema);

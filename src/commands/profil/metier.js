@@ -1,10 +1,11 @@
 const { SlashCommandBuilder } = require('discord.js');
+const { getActiveSlot } = require('../../services/profileService');
 const Profile = require('../../models/Profile');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('metier')
-    .setDescription('Modifier ton métier affiché sur ton profil')
+    .setDescription('Modifier le métier du profil actif')
     .addStringOption(option =>
       option
         .setName('nom')
@@ -15,15 +16,18 @@ module.exports = {
 
   async execute(interaction) {
     const nomMetier = interaction.options.getString('nom', true).trim();
+    const slot = await getActiveSlot(interaction.guildId, interaction.user.id);
 
     const profile = await Profile.findOneAndUpdate(
       {
         guildId: interaction.guildId,
-        userId: interaction.user.id
+        userId: interaction.user.id,
+        slot
       },
       {
         guildId: interaction.guildId,
         userId: interaction.user.id,
+        slot,
         metier: nomMetier
       },
       {
@@ -34,7 +38,7 @@ module.exports = {
     );
 
     await interaction.reply({
-      content: `✅ Ton métier a été mis à jour : **${profile.metier}**`,
+      content: `✅ Le métier du **profil actif (slot ${slot})** a été mis à jour : **${profile.metier}**`,
       ephemeral: true
     });
   }

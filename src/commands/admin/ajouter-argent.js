@@ -26,7 +26,7 @@ module.exports = {
         .setDescription('Le slot ciblé (sinon profil actif)')
         .setRequired(false)
         .setMinValue(1)
-        .setMaxValue(3)
+        .setMaxValue(10)
     ),
 
   async execute(interaction) {

@@ -1,5 +1,6 @@
 const Profile = require('../models/Profile');
 const { setActiveSlot } = require('../services/profileService');
+const { ABSOLUTE_MAX_PROFILE_SLOTS } = require('../utils/profileLimits');
 
 function isValidImageUrl(url) {
   if (!url) return false;
@@ -29,7 +30,7 @@ module.exports = function registerModals(client) {
         return;
       }
 
-      if (![1, 2, 3].includes(slot)) {
+      if (!Number.isInteger(slot) || slot < 1 || slot > ABSOLUTE_MAX_PROFILE_SLOTS) {
         await interaction.reply({
           content: 'Slot de profil invalide.',
           ephemeral: true

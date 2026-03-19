@@ -9,9 +9,9 @@ const {
   getActiveSlot,
   getProfileBySlot,
   getNextAvailableSlot,
-  MAX_PROFILE_SLOTS,
   ensureActiveState
 } = require('../../services/profileService');
+const { getMaxProfileSlotsForMember } = require('../../utils/profileLimits');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -21,16 +21,24 @@ module.exports = {
   async execute(interaction) {
     await ensureActiveState(interaction.guildId, interaction.user.id);
 
+    const maxSlots = getMaxProfileSlotsForMember(interaction.member);
     const activeSlot = await getActiveSlot(interaction.guildId, interaction.user.id);
+
     let existingProfile = await getProfileBySlot(interaction.guildId, interaction.user.id, activeSlot);
     let targetSlot = activeSlot;
 
     if (!existingProfile) {
-      const nextSlot = await getNextAvailableSlot(interaction.guildId, interaction.user.id);
+      const nextSlot = await getNextAvailableSlot(
+        interaction.guildId,
+        interaction.user.id,
+        maxSlots
+      );
 
       if (!nextSlot) {
         await interaction.reply({
-          content: `Tu as déjà atteint la limite de **${MAX_PROFILE_SLOTS} profils**. Utilise \`/profil-switch\` pour changer de profil actif puis \`/profil\` pour le modifier.`,
+          content:
+            `Tu as déjà atteint ta limite de **${maxSlots} profils**. ` +
+            `Utilise \`/profil-switch\` pour changer de profil actif puis \`/profil\` pour le modifier.`,
           ephemeral: true
         });
         return;
@@ -41,7 +49,11 @@ module.exports = {
 
     const modal = new ModalBuilder()
       .setCustomId(`profile_create:${interaction.user.id}:${targetSlot}`)
-      .setTitle(existingProfile ? `Modification du profil RP • Slot ${targetSlot}` : `Création du profil RP • Slot ${targetSlot}`);
+      .setTitle(
+        existingProfile
+          ? `Modification du profil RP • Slot ${targetSlot}`
+          : `Création du profil RP • Slot ${targetSlot}`
+      );
 
     const fullNameInput = new TextInputBuilder()
       .setCustomId('full_name')

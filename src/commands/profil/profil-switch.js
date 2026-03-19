@@ -11,7 +11,7 @@ module.exports = {
         .setDescription('Le slot du profil à activer')
         .setRequired(true)
         .setMinValue(1)
-        .setMaxValue(3)
+        .setMaxValue(10)
     ),
 
   async execute(interaction) {

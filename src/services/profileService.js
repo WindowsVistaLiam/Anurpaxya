@@ -1,7 +1,7 @@
 const Profile = require('../models/Profile');
 const UserProfileState = require('../models/UserProfileState');
 
-const MAX_PROFILE_SLOTS = 3;
+const ABSOLUTE_MAX_PROFILE_SLOTS = 10;
 
 async function getActiveSlot(guildId, userId) {
   const state = await UserProfileState.findOne({ guildId, userId }).lean();
@@ -37,13 +37,15 @@ async function getAllProfiles(guildId, userId) {
   return Profile.find({ guildId, userId }).sort({ slot: 1 }).lean();
 }
 
-async function getNextAvailableSlot(guildId, userId) {
+async function getNextAvailableSlot(guildId, userId, maxSlots = ABSOLUTE_MAX_PROFILE_SLOTS) {
   const profiles = await getAllProfiles(guildId, userId);
-  for (let slot = 1; slot <= MAX_PROFILE_SLOTS; slot += 1) {
+
+  for (let slot = 1; slot <= maxSlots; slot += 1) {
     if (!profiles.find(profile => profile.slot === slot)) {
       return slot;
     }
   }
+
   return null;
 }
 
@@ -58,7 +60,7 @@ async function ensureActiveState(guildId, userId) {
 }
 
 module.exports = {
-  MAX_PROFILE_SLOTS,
+  ABSOLUTE_MAX_PROFILE_SLOTS,
   getActiveSlot,
   setActiveSlot,
   getProfileBySlot,

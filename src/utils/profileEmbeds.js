@@ -19,20 +19,30 @@ function getSouillureState(percent = 0) {
   const value = Number(percent) || 0;
 
   if (value <= 0) return 'Pureté apparente';
-  if (value <= 20) return 'Frémissement léger';
+  if (value <= 10) return 'Frémissement léger';
+  if (value <= 20) return 'Frémissement intense';
+  if (value <= 30) return 'Tic inopiné';
   if (value <= 40) return 'Présence diffuse';
-  if (value <= 60) return 'Corruption rampante';
+  if (value <= 50) return 'Modification corporelle et phsychique';
+  if (value <= 60) return 'Corruption rampante sur le corps';
+  if (value <= 70) return 'Corruption gragrénée';
   if (value <= 80) return 'Altération profonde';
+  if (value <= 90) return 'Altération Chaotique';
   return 'Souillure critique';
 }
 
 function getPresenceText(souillure = 0) {
   if (souillure <= 0) return 'Aucune anomalie perceptible.';
-  if (souillure <= 20) return 'Un léger malaise peut être ressenti à proximité.';
-  if (souillure <= 40) return 'Une présence étrange semble accompagner ce personnage.';
-  if (souillure <= 60) return 'Une aura inquiétante émane de ce personnage.';
-  if (souillure <= 80) return 'Sa simple présence provoque un profond malaise.';
-  return 'La réalité elle-même semble se déformer autour de ce personnage.';
+  if (souillure <= 10) return 'Aucune anomalie perceptible.';
+  if (souillure <= 20) return 'Altération comportementale';
+  if (souillure <= 30) return 'Altération comportementale brutale.';
+  if (souillure <= 40) return 'Altération comportementale brutale et trace de striure sur le corps. ';
+  if (souillure <= 50) return 'Altération comportementale brutale et une partie du corps altérée';
+  if (souillure <= 60) return 'Altération comportementale brutale et plusieurs parties du corps altérées.';
+  if (souillure <= 70) return 'Perte de lucidité et de la maîtrise de ses actes, altérations profondes sur le corps.';
+  if (souillure <= 80) return 'Perte totale de lucidité et séquelles sur le corps.';
+  if (souillure <= 90) return 'Phase de non retour amorcée.';
+  return "La réalité elle-même semble se déformer, ce personnage n'est plus que l'ombre de lui même.";
 }
 
 function getSouillureColor(percent = 0) {

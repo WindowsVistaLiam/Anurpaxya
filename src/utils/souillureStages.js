@@ -74,8 +74,8 @@ function buildSouillureStageEmbed({ profile, user, souillure }) {
       `**État :** ${stage.label}\n` +
       `**Souillure :** ${souillure}%`
     )
-    .setThumbnail(user.displayAvatarURL({ dynamic: true }))
-    .setImage(profile.imageUrl || stage.gifUrl)
+    .setThumbnail(profile.imageUrl || user.displayAvatarURL({ dynamic: true }))
+    .setImage(stage.gifUrl)
     .setFooter({
       text: `Slot ${profile.slot} • ${user.username}`
     })

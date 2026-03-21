@@ -6,6 +6,10 @@ const {
 const Profile = require('../../models/Profile');
 const { getActiveSlot } = require('../../services/profileService');
 const { isMj } = require('../../utils/profileLimits');
+const {
+  getSouillureStageIndex,
+  buildSouillureStageEmbed
+} = require('../../utils/souillureStages');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -67,10 +71,13 @@ module.exports = {
     }
 
     const oldSouillure = Number(profile.souillure) || 0;
-    const newSouillure = Math.min(100, Number((oldSouillure + amount).toFixed(2)));
+    const oldStageIndex = getSouillureStageIndex(oldSouillure);
 
+    const newSouillure = Math.min(100, Number((oldSouillure + amount).toFixed(2)));
     profile.souillure = newSouillure;
     await profile.save();
+
+    const newStageIndex = getSouillureStageIndex(newSouillure);
 
     await interaction.reply({
       content:
@@ -79,5 +86,18 @@ module.exports = {
         `Souillure : **${oldSouillure}%** → **${newSouillure}%**`,
       flags: MessageFlags.Ephemeral
     });
+
+    if (newStageIndex > oldStageIndex) {
+      const embed = buildSouillureStageEmbed({
+        profile,
+        user: targetUser,
+        souillure: newSouillure
+      });
+
+      await interaction.channel.send({
+        content: `<@${targetUser.id}>`,
+        embeds: [embed]
+      });
+    }
   }
 };

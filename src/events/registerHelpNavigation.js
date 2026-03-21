@@ -20,7 +20,7 @@ module.exports = function registerHelpNavigation(client) {
       }
 
       if (action === 'help_next') {
-        page = Math.min(3, page + 1);
+        page = Math.min(4, page + 1);
       }
 
       await interaction.update({
@@ -33,12 +33,12 @@ module.exports = function registerHelpNavigation(client) {
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp({
           content: 'Une erreur est survenue pendant la navigation de l’aide.',
-          ephemeral: true
+          flags: 64
         }).catch(() => {});
       } else {
         await interaction.reply({
           content: 'Une erreur est survenue pendant la navigation de l’aide.',
-          ephemeral: true
+          flags: 64
         }).catch(() => {});
       }
     }

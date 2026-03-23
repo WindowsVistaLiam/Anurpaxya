@@ -1,5 +1,4 @@
-function getTitleRarityDisplay(title = ''){const rarity = getTitleRarity(title);} 
-{
+function getTitleRarityDisplay(title = '', rarity = 'common') {
   if (rarity === 'legendary') {
     return `👑 Légendaire • ${title}`;
   }

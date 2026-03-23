@@ -15,6 +15,21 @@ const inventoryItemSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const titleSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true
+    },
+    rarity: {
+      type: String,
+      enum: ['common', 'rare', 'epic', 'legendary'],
+      default: 'common'
+    }
+  },
+  { _id: false }
+);
+
 const profileSchema = new mongoose.Schema(
   {
     guildId: {
@@ -62,7 +77,7 @@ const profileSchema = new mongoose.Schema(
       default: ''
     },
     titles: {
-      type: [String],
+      type: [titleSchema],
       default: []
     },
     rpMessages: {

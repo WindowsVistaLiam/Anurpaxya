@@ -12,6 +12,7 @@ const {
   getSouillureStageIndex,
   buildSouillureStageEmbed
 } = require('../utils/souillureStages');
+const { getTitleRarityDisplay, getTitleRarityColor } = require('../utils/titleUtils');
 
 const cooldowns = new Map();
 
@@ -22,14 +23,21 @@ function getChannelType(channelId) {
   return null;
 }
 
-function buildTitleEmbed({ profile, user, level, title }) {
+function getAutomaticTitleRarity(level) {
+  if (level >= 40) return 'legendary';
+  if (level >= 15) return 'epic';
+  if (level >= 5) return 'rare';
+  return 'common';
+}
+
+function buildTitleEmbed({ profile, user, level, title, rarity }) {
   return new EmbedBuilder()
-    .setColor(0xf1c40f)
+    .setColor(getTitleRarityColor(rarity))
     .setTitle('🏅 Nouveau titre obtenu')
     .setDescription(
       `**${profile.nomPrenom || user.username}** progresse dans son parcours RP.\n\n` +
       `**Niveau RP :** ${level}\n` +
-      `**Titre obtenu :** *${title}*`
+      `**Titre obtenu :** ${getTitleRarityDisplay(title, rarity)}`
     )
     .setThumbnail(profile.imageUrl || user.displayAvatarURL({ dynamic: true }))
     .setFooter({
@@ -44,6 +52,7 @@ module.exports = {
   async execute(message) {
     try {
       if (!message.guild) return;
+      if (!message.author) return;
       if (message.author.bot) return;
       if (!message.content) return;
 
@@ -95,9 +104,19 @@ module.exports = {
       for (let level = oldLevel + 1; level <= computedLevel; level += 1) {
         const title = LEVEL_TITLES[level];
 
-        if (title && !profile.titles.includes(title)) {
-          profile.titles.push(title);
-          newTitles.push({ level, title });
+        if (title && !profile.titles.some(existing => existing.name === title)) {
+          const rarity = getAutomaticTitleRarity(level);
+
+          profile.titles.push({
+            name: title,
+            rarity
+          });
+
+          newTitles.push({
+            level,
+            title,
+            rarity
+          });
         }
       }
 
@@ -123,7 +142,8 @@ module.exports = {
           profile,
           user: message.author,
           level: entry.level,
-          title: entry.title
+          title: entry.title,
+          rarity: entry.rarity
         });
 
         await message.channel.send({

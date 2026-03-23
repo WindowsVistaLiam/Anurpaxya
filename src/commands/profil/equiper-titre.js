@@ -1,6 +1,10 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const Profile = require('../../models/Profile');
 const { getActiveSlot } = require('../../services/profileService');
+const {
+  getTitleRarityDisplay,
+  getTitleRarityColor
+} = require('../../utils/titleUtils');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -31,11 +35,11 @@ module.exports = {
       }
 
       const filtered = profile.titles
-        .filter(title => title.toLowerCase().includes(focusedValue))
+        .filter(title => title.name.toLowerCase().includes(focusedValue))
         .slice(0, 25)
         .map(title => ({
-          name: title,
-          value: title
+          name: title.name,
+          value: title.name
         }));
 
       await interaction.respond(filtered);
@@ -63,7 +67,9 @@ module.exports = {
       return;
     }
 
-    if (!profile.titles.includes(selectedTitle)) {
+    const foundTitle = profile.titles.find(title => title.name === selectedTitle);
+
+    if (!foundTitle) {
       await interaction.reply({
         content: 'Tu ne possèdes pas ce titre sur ton profil actif.',
         flags: MessageFlags.Ephemeral
@@ -75,11 +81,11 @@ module.exports = {
     await profile.save();
 
     const embed = new EmbedBuilder()
-      .setColor(0xf1c40f)
+      .setColor(getTitleRarityColor(foundTitle.rarity))
       .setTitle('🏅 Titre équipé')
       .setDescription(
         `**${profile.nomPrenom || interaction.user.username}** équipe désormais :\n\n` +
-        `*${selectedTitle}*`
+        `${getTitleRarityDisplay(foundTitle.name, foundTitle.rarity)}`
       )
       .setThumbnail(profile.imageUrl || interaction.user.displayAvatarURL({ dynamic: true }))
       .setFooter({

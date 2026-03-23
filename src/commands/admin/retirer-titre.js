@@ -40,7 +40,8 @@ module.exports = {
       const focused = interaction.options.getFocused().toLowerCase();
 
       if (!user) {
-        return interaction.respond([]);
+        await interaction.respond([]);
+        return;
       }
 
       const slot =
@@ -54,15 +55,16 @@ module.exports = {
       }).lean();
 
       if (!profile || !profile.titles) {
-        return interaction.respond([]);
+        await interaction.respond([]);
+        return;
       }
 
       const results = profile.titles
-        .filter(t => t.toLowerCase().includes(focused))
+        .filter(t => t.name.toLowerCase().includes(focused))
         .slice(0, 25)
         .map(t => ({
-          name: t,
-          value: t
+          name: t.name,
+          value: t.name
         }));
 
       await interaction.respond(results);
@@ -79,18 +81,18 @@ module.exports = {
     const mj = isMj(member);
 
     if (!isAdmin && !mj) {
-      return interaction.reply({
+      await interaction.reply({
         content: 'Tu n’as pas la permission.',
         flags: MessageFlags.Ephemeral
       });
+      return;
     }
 
     const user = interaction.options.getUser('utilisateur', true);
     const title = interaction.options.getString('titre', true);
     const slotOption = interaction.options.getInteger('slot');
 
-    const slot =
-      slotOption || await getActiveSlot(interaction.guildId, user.id);
+    const slot = slotOption || await getActiveSlot(interaction.guildId, user.id);
 
     const profile = await Profile.findOne({
       guildId: interaction.guildId,
@@ -99,23 +101,25 @@ module.exports = {
     });
 
     if (!profile) {
-      return interaction.reply({
+      await interaction.reply({
         content: `Profil introuvable (slot ${slot}).`,
         flags: MessageFlags.Ephemeral
       });
+      return;
     }
 
-    if (!profile.titles.includes(title)) {
-      return interaction.reply({
-        content: `Ce joueur ne possède pas ce titre.`,
+    const hasTitle = profile.titles.some(t => t.name === title);
+
+    if (!hasTitle) {
+      await interaction.reply({
+        content: 'Ce joueur ne possède pas ce titre.',
         flags: MessageFlags.Ephemeral
       });
+      return;
     }
 
-    // 🔥 Retirer le titre
-    profile.titles = profile.titles.filter(t => t !== title);
+    profile.titles = profile.titles.filter(t => t.name !== title);
 
-    // 🔥 Si c'était le titre équipé → on l'enlève aussi
     if (profile.equippedTitle === title) {
       profile.equippedTitle = '';
     }

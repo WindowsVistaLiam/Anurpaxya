@@ -1,4 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
+const { getTitleRarityDisplay } = require('./titleUtils');
 
 function truncate(text, maxLength) {
   if (!text) return 'Non renseigné';
@@ -134,9 +135,11 @@ function buildProfileEmbed(profile, targetUser, guild, page = 1) {
         },
         {
           name: '🏅 Titre équipé',
-          value: profile.equippedTitle || 'Aucun titre équipé',
+          value: profile.equippedTitle
+          ? getTitleRarityDisplay(profile.equippedTitle)
+          : 'Aucun titre équipé',
           inline: false
-        },
+},
         {
           name: '🕯️ Souillure',
           value: `${buildSouillureBar(souillure)}\n${getSouillureState(souillure)}`,

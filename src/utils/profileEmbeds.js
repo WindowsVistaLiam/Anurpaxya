@@ -16,22 +16,6 @@ function buildSouillureBar(percent = 0) {
   return `${'█'.repeat(filledBars)}${'░'.repeat(emptyBars)} ${safe}%`;
 }
 
-function getEquippedTitleDisplay(profile) {
-  if (!profile.equippedTitle) {
-    return 'Aucun titre équipé';
-  }
-
-  const equipped = Array.isArray(profile.titles)
-    ? profile.titles.find(title => title.name === profile.equippedTitle)
-    : null;
-
-  if (!equipped) {
-    return profile.equippedTitle;
-  }
-
-  return getTitleRarityDisplay(equipped.name, equipped.rarity);
-}
-
 function getSouillureState(percent = 0) {
   const value = Number(percent) || 0;
 
@@ -40,26 +24,26 @@ function getSouillureState(percent = 0) {
   if (value <= 20) return 'Frémissement intense';
   if (value <= 30) return 'Tic inopiné';
   if (value <= 40) return 'Présence diffuse';
-  if (value <= 50) return 'Modification corporelle et phsychique';
+  if (value <= 50) return 'Modification corporelle et psychique';
   if (value <= 60) return 'Corruption rampante sur le corps';
-  if (value <= 70) return 'Corruption gragrénée';
+  if (value <= 70) return 'Corruption gangrénée';
   if (value <= 80) return 'Altération profonde';
-  if (value <= 90) return 'Altération Chaotique';
+  if (value <= 90) return 'Altération chaotique';
   return 'Souillure critique';
 }
 
 function getPresenceText(souillure = 0) {
   if (souillure <= 0) return 'Aucune anomalie perceptible.';
   if (souillure <= 10) return 'Aucune anomalie perceptible.';
-  if (souillure <= 20) return 'Altération comportementale';
+  if (souillure <= 20) return 'Altération comportementale.';
   if (souillure <= 30) return 'Altération comportementale brutale.';
-  if (souillure <= 40) return 'Altération comportementale brutale et trace de striure sur le corps. ';
-  if (souillure <= 50) return 'Altération comportementale brutale et une partie du corps altérée';
+  if (souillure <= 40) return 'Altération comportementale brutale et trace de striure sur le corps.';
+  if (souillure <= 50) return 'Altération comportementale brutale et une partie du corps altérée.';
   if (souillure <= 60) return 'Altération comportementale brutale et plusieurs parties du corps altérées.';
   if (souillure <= 70) return 'Perte de lucidité et de la maîtrise de ses actes, altérations profondes sur le corps.';
   if (souillure <= 80) return 'Perte totale de lucidité et séquelles sur le corps.';
   if (souillure <= 90) return 'Phase de non retour amorcée.';
-  return "La réalité elle-même semble se déformer, ce personnage n'est plus que l'ombre de lui même.";
+  return "La réalité elle-même semble se déformer, ce personnage n'est plus que l'ombre de lui-même.";
 }
 
 function getSouillureColor(percent = 0) {
@@ -83,10 +67,41 @@ function formatInventory(inventory = []) {
     .join('\n');
 }
 
+function getEquippedTitleDisplay(profile) {
+  if (!profile.equippedTitle) {
+    return 'Aucun titre équipé';
+  }
+
+  if (!Array.isArray(profile.titles) || profile.titles.length === 0) {
+    return profile.equippedTitle;
+  }
+
+  const equipped = profile.titles.find(title => {
+    if (typeof title === 'string') {
+      return title === profile.equippedTitle;
+    }
+
+    return title.name === profile.equippedTitle;
+  });
+
+  if (!equipped) {
+    return profile.equippedTitle;
+  }
+
+  // Ancien format : ["Mon titre"]
+  if (typeof equipped === 'string') {
+    return getTitleRarityDisplay(equipped, 'common');
+  }
+
+  // Nouveau format : [{ name, rarity }]
+  return getTitleRarityDisplay(equipped.name, equipped.rarity || 'common');
+}
+
 function buildProfileEmbed(profile, targetUser, guild, page = 1) {
   const souillure = Number(profile.souillure) || 0;
-  const rpActions = Number(profile.rpActionsCount) || 0;
   const wallet = Number(profile.wallet) || 0;
+  const rpMessages = Number(profile.rpMessages) || 0;
+  const rpLevel = Number(profile.rpLevel) || 1;
   const color = getSouillureColor(souillure);
   const slot = profile.slot || 1;
 
@@ -151,11 +166,9 @@ function buildProfileEmbed(profile, targetUser, guild, page = 1) {
         },
         {
           name: '🏅 Titre équipé',
-          value: profile.equippedTitle
-          ? getTitleRarityDisplay(profile.equippedTitle)
-          : 'Aucun titre équipé',
+          value: getEquippedTitleDisplay(profile),
           inline: false
-},
+        },
         {
           name: '🕯️ Souillure',
           value: `${buildSouillureBar(souillure)}\n${getSouillureState(souillure)}`,
@@ -169,8 +182,9 @@ function buildProfileEmbed(profile, targetUser, guild, page = 1) {
         {
           name: '📈 Progression RP',
           value: [
-            `**Actions RP validées :** ${rpActions}`,
-            `**Avant le prochain palier :** ${Math.max(0, 20 - (rpActions % 20))} action(s)`
+            `**Niveau RP :** ${rpLevel}`,
+            `**Messages RP validés :** ${rpMessages}`,
+            `**Avant le prochain niveau :** ${Math.max(0, 20 - (rpMessages % 20))} message(s)`
           ].join('\n'),
           inline: false
         },

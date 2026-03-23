@@ -57,6 +57,25 @@ const profileSchema = new mongoose.Schema(
       type: String,
       default: 'Sans métier'
     },
+    equippedTitle: {
+      type: String,
+      default: ''
+    },
+    titles: {
+      type: [String],
+      default: []
+    },
+    rpMessages: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    rpLevel: {
+      type: Number,
+      default: 1,
+      min: 1,
+      max: 50
+    },
     wallet: {
       type: Number,
       default: 0,
@@ -71,11 +90,6 @@ const profileSchema = new mongoose.Schema(
       default: 0,
       min: 0,
       max: 100
-    },
-    rpActionsCount: {
-      type: Number,
-      default: 0,
-      min: 0
     }
   },
   {

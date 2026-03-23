@@ -4,6 +4,14 @@ module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction, client) {
     try {
+      if (interaction.isAutocomplete()) {
+        const command = client.commands.get(interaction.commandName);
+        if (command?.autocomplete) {
+          await command.autocomplete(interaction, client);
+        }
+        return;
+      }
+
       if (!interaction.isChatInputCommand()) return;
 
       const command = client.commands.get(interaction.commandName);
@@ -11,7 +19,7 @@ module.exports = {
       if (!command) {
         await interaction.reply({
           content: 'Commande introuvable.',
-          ephemeral: true
+          flags: 64
         });
         return;
       }
@@ -23,12 +31,12 @@ module.exports = {
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp({
           content: 'Une erreur est survenue pendant le traitement.',
-          ephemeral: true
+          flags: 64
         }).catch(() => {});
       } else {
         await interaction.reply({
           content: 'Une erreur est survenue pendant le traitement.',
-          ephemeral: true
+          flags: 64
         }).catch(() => {});
       }
     }

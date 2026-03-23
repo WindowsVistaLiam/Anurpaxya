@@ -133,6 +133,11 @@ function buildProfileEmbed(profile, targetUser, guild, page = 1) {
           inline: false
         },
         {
+          name: '🏅 Titre équipé',
+          value: profile.equippedTitle || 'Aucun titre équipé',
+          inline: false
+        },
+        {
           name: '🕯️ Souillure',
           value: `${buildSouillureBar(souillure)}\n${getSouillureState(souillure)}`,
           inline: false

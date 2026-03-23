@@ -1,3 +1,4 @@
+const { EmbedBuilder } = require('discord.js');
 const Profile = require('../models/Profile');
 const {
   CHANNELS,
@@ -5,6 +6,7 @@ const {
   MIN_LENGTH,
   MAX_SOUILLURE
 } = require('../config/souillure');
+const { LEVEL_TITLES } = require('../config/titles');
 const { getActiveSlot } = require('../services/profileService');
 const {
   getSouillureStageIndex,
@@ -20,16 +22,35 @@ function getChannelType(channelId) {
   return null;
 }
 
+function buildTitleEmbed({ profile, user, level, title }) {
+  return new EmbedBuilder()
+    .setColor(0xf1c40f)
+    .setTitle('🏅 Nouveau titre obtenu')
+    .setDescription(
+      `**${profile.nomPrenom || user.username}** progresse dans son parcours RP.\n\n` +
+      `**Niveau RP :** ${level}\n` +
+      `**Titre obtenu :** *${title}*`
+    )
+    .setThumbnail(profile.imageUrl || user.displayAvatarURL({ dynamic: true }))
+    .setFooter({
+      text: `Slot ${profile.slot} • ${user.username}`
+    })
+    .setTimestamp();
+}
+
 module.exports = {
   name: 'messageCreate',
+
   async execute(message) {
     try {
       if (!message.guild) return;
       if (message.author.bot) return;
+      if (!message.content) return;
+
       if (message.content.length < MIN_LENGTH) return;
 
-      const type = getChannelType(message.channel.id);
-      if (!type) return;
+      const channelType = getChannelType(message.channel.id);
+      if (!channelType) return;
 
       const key = `${message.guild.id}-${message.author.id}`;
       const now = Date.now();
@@ -38,7 +59,7 @@ module.exports = {
       if (now - last < 10000) return;
       cooldowns.set(key, now);
 
-      const gain = GAINS[type];
+      const gain = GAINS[channelType];
       const slot = await getActiveSlot(message.guild.id, message.author.id);
 
       const profile = await Profile.findOne({
@@ -49,31 +70,69 @@ module.exports = {
 
       if (!profile) return;
 
+      // ----- Souillure -----
       const oldSouillure = Number(profile.souillure) || 0;
-      const oldStageIndex = getSouillureStageIndex(oldSouillure);
+      const oldSouillureStageIndex = getSouillureStageIndex(oldSouillure);
 
       let newSouillure = oldSouillure + gain;
       newSouillure = Math.min(newSouillure, MAX_SOUILLURE);
       newSouillure = Number(newSouillure.toFixed(2));
 
       profile.souillure = newSouillure;
+
+      const newSouillureStageIndex = getSouillureStageIndex(newSouillure);
+
+      // ----- Progression RP / titres -----
+      const oldLevel = Number(profile.rpLevel) || 1;
+
+      profile.rpMessages = (Number(profile.rpMessages) || 0) + 1;
+
+      const computedLevel = Math.min(50, Math.floor(profile.rpMessages / 20) + 1);
+      profile.rpLevel = computedLevel;
+
+      const newTitles = [];
+
+      for (let level = oldLevel + 1; level <= computedLevel; level += 1) {
+        const title = LEVEL_TITLES[level];
+
+        if (title && !profile.titles.includes(title)) {
+          profile.titles.push(title);
+          newTitles.push({ level, title });
+        }
+      }
+
       await profile.save();
 
-      const newStageIndex = getSouillureStageIndex(newSouillure);
-
-      if (newStageIndex > oldStageIndex) {
-        const embed = buildSouillureStageEmbed({
-          profileName: profile.nomPrenom || message.author.username,
+      // ----- Embed de palier de souillure -----
+      if (newSouillureStageIndex > oldSouillureStageIndex) {
+        const souillureEmbed = buildSouillureStageEmbed({
+          profile,
+          user: message.author,
           souillure: newSouillure
         });
 
         await message.channel.send({
           content: `<@${message.author.id}>`,
-          embeds: [embed]
+          embeds: [souillureEmbed]
+        });
+      }
+
+      // ----- Embed(s) de titre(s) -----
+      for (const entry of newTitles) {
+        const titleEmbed = buildTitleEmbed({
+          profile,
+          user: message.author,
+          level: entry.level,
+          title: entry.title
+        });
+
+        await message.channel.send({
+          content: `<@${message.author.id}>`,
+          embeds: [titleEmbed]
         });
       }
     } catch (error) {
-      console.error('❌ Erreur souillure message:', error);
+      console.error('❌ Erreur messageCreate :', error);
     }
   }
 };

@@ -1,6 +1,7 @@
 const {
   SlashCommandBuilder,
-  PermissionFlagsBits
+  PermissionFlagsBits,
+  MessageFlags
 } = require('discord.js');
 const Profile = require('../../models/Profile');
 const { getActiveSlot } = require('../../services/profileService');
@@ -10,8 +11,19 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('ajouter-titre')
     .setDescription('Ajouter un titre RP à un joueur')
-    .addUserOption(o => o.setName('utilisateur').setRequired(true))
-    .addStringOption(o => o.setName('titre').setRequired(true)),
+    .addUserOption(option =>
+      option
+        .setName('utilisateur')
+        .setDescription('Le joueur qui recevra le titre')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option
+        .setName('titre')
+        .setDescription('Le titre à ajouter')
+        .setRequired(true)
+        .setMaxLength(100)
+    ),
 
   async execute(interaction) {
     const member = interaction.member;
@@ -20,14 +32,15 @@ module.exports = {
       !member.permissions.has(PermissionFlagsBits.Administrator) &&
       !isMj(member)
     ) {
-      return interaction.reply({
+      await interaction.reply({
         content: 'Permission refusée.',
-        flags: 64
+        flags: MessageFlags.Ephemeral
       });
+      return;
     }
 
-    const user = interaction.options.getUser('utilisateur');
-    const title = interaction.options.getString('titre');
+    const user = interaction.options.getUser('utilisateur', true);
+    const title = interaction.options.getString('titre', true).trim();
 
     const slot = await getActiveSlot(interaction.guildId, user.id);
 
@@ -38,10 +51,11 @@ module.exports = {
     });
 
     if (!profile) {
-      return interaction.reply({
+      await interaction.reply({
         content: 'Profil introuvable.',
-        flags: 64
+        flags: MessageFlags.Ephemeral
       });
+      return;
     }
 
     if (!profile.titles.includes(title)) {
@@ -50,7 +64,8 @@ module.exports = {
     }
 
     await interaction.reply({
-      content: `🏅 Titre ajouté à ${user.username} : **${title}**`
+      content: `🏅 Titre ajouté à ${user.username} : **${title}**`,
+      flags: MessageFlags.Ephemeral
     });
   }
 };

@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const Profile = require('../../models/Profile');
+const ReputationHistory = require('../../models/ReputationHistory');
 const { canManageReputation } = require('../../config/permissions');
 
 function getReputationField(type) {
@@ -17,18 +18,10 @@ module.exports = {
         .setName('ajouter')
         .setDescription('Ajouter de la réputation positive ou négative')
         .addUserOption(option =>
-          option
-            .setName('joueur')
-            .setDescription('Joueur ciblé')
-            .setRequired(true)
+          option.setName('joueur').setDescription('Joueur ciblé').setRequired(true)
         )
         .addIntegerOption(option =>
-          option
-            .setName('slot')
-            .setDescription('Slot ciblé')
-            .setRequired(true)
-            .setMinValue(1)
-            .setMaxValue(10)
+          option.setName('slot').setDescription('Slot ciblé').setRequired(true).setMinValue(1).setMaxValue(10)
         )
         .addStringOption(option =>
           option
@@ -41,17 +34,10 @@ module.exports = {
             )
         )
         .addIntegerOption(option =>
-          option
-            .setName('montant')
-            .setDescription('Montant à ajouter')
-            .setRequired(true)
-            .setMinValue(1)
+          option.setName('montant').setDescription('Montant à ajouter').setRequired(true).setMinValue(1)
         )
         .addStringOption(option =>
-          option
-            .setName('raison')
-            .setDescription('Raison RP / MJ')
-            .setRequired(false)
+          option.setName('raison').setDescription('Raison RP / MJ').setRequired(false)
         )
     )
     .addSubcommand(sub =>
@@ -59,18 +45,10 @@ module.exports = {
         .setName('retirer')
         .setDescription('Retirer de la réputation positive ou négative')
         .addUserOption(option =>
-          option
-            .setName('joueur')
-            .setDescription('Joueur ciblé')
-            .setRequired(true)
+          option.setName('joueur').setDescription('Joueur ciblé').setRequired(true)
         )
         .addIntegerOption(option =>
-          option
-            .setName('slot')
-            .setDescription('Slot ciblé')
-            .setRequired(true)
-            .setMinValue(1)
-            .setMaxValue(10)
+          option.setName('slot').setDescription('Slot ciblé').setRequired(true).setMinValue(1).setMaxValue(10)
         )
         .addStringOption(option =>
           option
@@ -83,17 +61,10 @@ module.exports = {
             )
         )
         .addIntegerOption(option =>
-          option
-            .setName('montant')
-            .setDescription('Montant à retirer')
-            .setRequired(true)
-            .setMinValue(1)
+          option.setName('montant').setDescription('Montant à retirer').setRequired(true).setMinValue(1)
         )
         .addStringOption(option =>
-          option
-            .setName('raison')
-            .setDescription('Raison RP / MJ')
-            .setRequired(false)
+          option.setName('raison').setDescription('Raison RP / MJ').setRequired(false)
         )
     ),
 
@@ -148,6 +119,19 @@ module.exports = {
 
     await profile.save();
 
+    await ReputationHistory.create({
+      guildId: interaction.guildId,
+      targetUserId: targetUser.id,
+      targetSlot: slot,
+      targetProfileNameSnapshot: profile.nomPrenom || targetUser.username,
+      actionType: subcommand === 'ajouter' ? 'add' : 'remove',
+      reputationType: type,
+      amount,
+      reason,
+      performedByUserId: interaction.user.id,
+      performedByTagSnapshot: interaction.user.tag || interaction.user.username
+    });
+
     const newPositive = Number(profile.positiveReputation) || 0;
     const newNegative = Number(profile.negativeReputation) || 0;
     const balance = newPositive - newNegative;
@@ -162,7 +146,9 @@ module.exports = {
         `Raison : ${reason}`,
         '',
         `Avant : 🌟 ${oldPositive} • 🕸️ ${oldNegative}`,
-        `Après : 🌟 ${newPositive} • 🕸️ ${newNegative} • ⚖️ ${balanceText}`
+        `Après : 🌟 ${newPositive} • 🕸️ ${newNegative} • ⚖️ ${balanceText}`,
+        '',
+        '✅ Historique enregistré.'
       ].join('\n'),
       flags: MessageFlags.Ephemeral
     });

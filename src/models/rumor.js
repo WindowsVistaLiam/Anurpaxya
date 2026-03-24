@@ -25,7 +25,11 @@ const rumorSchema = new mongoose.Schema(
       type: String,
       enum: ['active', 'archived', 'deleted'],
       default: 'active'
-    }
+    },
+
+    moderatedByUserId: { type: String, default: '' },
+    moderationReason: { type: String, default: '' },
+    moderatedAt: { type: Date, default: null }
   },
   { timestamps: true }
 );

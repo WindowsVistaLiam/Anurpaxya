@@ -15,6 +15,7 @@ const registerExchangeDraftInteractions = require('./events/registerExchangeDraf
 const registerExchangeConfirmations = require('./events/registerExchangeConfirmations');
 const registerRelationInteractions = require('./events/registerRelationInteractions');
 const registerRumorInteractions = require('./events/registerRumorInteractions');
+const registerReputationHistoryNavigation = require('./events/registerReputationHistoryNavigation');
 
 const client = new Client({
   intents: [
@@ -97,6 +98,7 @@ registerExchangeDraftInteractions(client);
 registerExchangeConfirmations(client);
 registerRelationInteractions(client);
 registerRumorInteractions(client);
+registerReputationHistoryNavigation(client);
 
 (async () => {
   await connectDatabase();

@@ -16,10 +16,35 @@ const { getTitleRarityDisplay, getTitleRarityColor } = require('../utils/titleUt
 
 const cooldowns = new Map();
 
-function getChannelType(channelId) {
-  if (CHANNELS.SAINT.includes(channelId)) return 'SAINT';
-  if (CHANNELS.POLLUE.includes(channelId)) return 'POLLUE';
-  if (CHANNELS.SOUILLE.includes(channelId)) return 'SOUILLE';
+function normalizeIdArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map(String);
+  return [String(value)];
+}
+
+/**
+ * Retourne true si le message provient :
+ * - soit directement d'un salon texte configuré
+ * - soit d'un thread dont le parent est configuré
+ * - soit d'un thread de forum dont le forum parent est configuré
+ */
+function matchesConfiguredChannel(message, configuredIds) {
+  const ids = normalizeIdArray(configuredIds);
+  if (ids.length === 0) return false;
+
+  const channelId = String(message.channel.id);
+  const parentId = message.channel.parentId ? String(message.channel.parentId) : null;
+
+  if (ids.includes(channelId)) return true;
+  if (parentId && ids.includes(parentId)) return true;
+
+  return false;
+}
+
+function getChannelType(message) {
+  if (matchesConfiguredChannel(message, CHANNELS.SAINT)) return 'SAINT';
+  if (matchesConfiguredChannel(message, CHANNELS.POLLUE)) return 'POLLUE';
+  if (matchesConfiguredChannel(message, CHANNELS.SOUILLE)) return 'SOUILLE';
   return null;
 }
 
@@ -58,7 +83,7 @@ module.exports = {
 
       if (message.content.length < MIN_LENGTH) return;
 
-      const channelType = getChannelType(message.channel.id);
+      const channelType = getChannelType(message);
       if (!channelType) return;
 
       const key = `${message.guild.id}-${message.author.id}`;
@@ -104,7 +129,13 @@ module.exports = {
       for (let level = oldLevel + 1; level <= computedLevel; level += 1) {
         const title = LEVEL_TITLES[level];
 
-        if (title && !profile.titles.some(existing => existing.name === title)) {
+        if (
+          title &&
+          !profile.titles.some(existing => {
+            if (typeof existing === 'string') return existing === title;
+            return existing.name === title;
+          })
+        ) {
           const rarity = getAutomaticTitleRarity(level);
 
           profile.titles.push({

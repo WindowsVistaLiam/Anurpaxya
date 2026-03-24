@@ -1,16 +1,9 @@
 module.exports = {
-  CHANNELS: {
-    SAINT: [
-      'ID_CHANNEL_1',
-      'ID_CHANNEL_2'
-    ],
-    POLLUE: [
-      'ID_CHANNEL_3'
-    ],
-    SOUILLE: [
-      'ID_CHANNEL_4'
-    ]
-  },
+CHANNELS: {
+  SAINT: ['ID_SALON_TEXTE', 'ID_FORUM_PARENT'],
+  POLLUE: ['ID_AUTRE_SALON', 'ID_AUTRE_FORUM'],
+  SOUILLE: ['ID_SALON_SOUILLE', 'ID_FORUM_SOUILLE']
+},
 
   GAINS: {
     SAINT: 0.2,

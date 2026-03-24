@@ -100,7 +100,18 @@ async function tryLoadItemIcon(iconUrl, iconName) {
   return null;
 }
 
-function drawBackground(ctx) {
+
+async function tryLoadBackgroundImage(backgroundImageUrl) {
+  if (!backgroundImageUrl) return null;
+
+  try {
+    return await loadImage(backgroundImageUrl);
+  } catch {
+    return null;
+  }
+}
+
+function drawDefaultBackground(ctx) {
   const bg = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
   bg.addColorStop(0, '#090b10');
   bg.addColorStop(0.5, '#11151c');
@@ -131,6 +142,37 @@ function drawBackground(ctx) {
     ctx.lineTo(CANVAS_WIDTH - 70, y);
     ctx.stroke();
   }
+}
+
+async function drawBackground(ctx, profile) {
+  const backgroundImage = await tryLoadBackgroundImage(profile?.backgroundImageUrl || '');
+
+  if (!backgroundImage) {
+    drawDefaultBackground(ctx);
+    return;
+  }
+
+  ctx.drawImage(backgroundImage, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  const overlay = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+  overlay.addColorStop(0, 'rgba(0,0,0,0.25)');
+  overlay.addColorStop(0.5, 'rgba(0,0,0,0.18)');
+  overlay.addColorStop(1, 'rgba(0,0,0,0.35)');
+  ctx.fillStyle = overlay;
+  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  const vignette = ctx.createRadialGradient(
+    CANVAS_WIDTH / 2,
+    CANVAS_HEIGHT / 2,
+    140,
+    CANVAS_WIDTH / 2,
+    CANVAS_HEIGHT / 2,
+    700
+  );
+  vignette.addColorStop(0, 'rgba(255,255,255,0.02)');
+  vignette.addColorStop(1, 'rgba(0,0,0,0.45)');
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 }
 
 function drawOuterFrame(ctx) {
@@ -566,7 +608,7 @@ async function createInventoryAttachment(profile) {
   const canvas = createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
   const ctx = canvas.getContext('2d');
 
-  drawBackground(ctx);
+  await drawBackground(ctx, profile);
   drawOuterFrame(ctx);
   drawHeaderOrnament(ctx);
   drawCenterAura(ctx);

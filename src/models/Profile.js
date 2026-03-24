@@ -101,6 +101,9 @@ const profileSchema = new mongoose.Schema(
     positiveReputation: { type: Number, default: 0, min: 0 },
     negativeReputation: { type: Number, default: 0, min: 0 },
 
+    backgroundImageUrl: { type: String, default: '' },
+    backgroundImageApprovedBy: { type: String, default: '' },
+
     relations: {
       type: [relationSchema],
       default: []

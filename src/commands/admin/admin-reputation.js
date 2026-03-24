@@ -2,6 +2,12 @@ const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const Profile = require('../../models/Profile');
 const { canManageReputation } = require('../../config/permissions');
 
+function getReputationField(type) {
+  if (type === 'positive') return 'positiveReputation';
+  if (type === 'negative') return 'negativeReputation';
+  return null;
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('admin-reputation')
@@ -11,10 +17,18 @@ module.exports = {
         .setName('ajouter')
         .setDescription('Ajouter de la réputation positive ou négative')
         .addUserOption(option =>
-          option.setName('joueur').setDescription('Joueur ciblé').setRequired(true)
+          option
+            .setName('joueur')
+            .setDescription('Joueur ciblé')
+            .setRequired(true)
         )
         .addIntegerOption(option =>
-          option.setName('slot').setDescription('Slot ciblé').setRequired(true).setMinValue(1).setMaxValue(10)
+          option
+            .setName('slot')
+            .setDescription('Slot ciblé')
+            .setRequired(true)
+            .setMinValue(1)
+            .setMaxValue(10)
         )
         .addStringOption(option =>
           option
@@ -27,10 +41,17 @@ module.exports = {
             )
         )
         .addIntegerOption(option =>
-          option.setName('montant').setDescription('Montant à ajouter').setRequired(true).setMinValue(1)
+          option
+            .setName('montant')
+            .setDescription('Montant à ajouter')
+            .setRequired(true)
+            .setMinValue(1)
         )
         .addStringOption(option =>
-          option.setName('raison').setDescription('Raison RP / MJ').setRequired(false)
+          option
+            .setName('raison')
+            .setDescription('Raison RP / MJ')
+            .setRequired(false)
         )
     )
     .addSubcommand(sub =>
@@ -38,10 +59,18 @@ module.exports = {
         .setName('retirer')
         .setDescription('Retirer de la réputation positive ou négative')
         .addUserOption(option =>
-          option.setName('joueur').setDescription('Joueur ciblé').setRequired(true)
+          option
+            .setName('joueur')
+            .setDescription('Joueur ciblé')
+            .setRequired(true)
         )
         .addIntegerOption(option =>
-          option.setName('slot').setDescription('Slot ciblé').setRequired(true).setMinValue(1).setMaxValue(10)
+          option
+            .setName('slot')
+            .setDescription('Slot ciblé')
+            .setRequired(true)
+            .setMinValue(1)
+            .setMaxValue(10)
         )
         .addStringOption(option =>
           option
@@ -54,10 +83,17 @@ module.exports = {
             )
         )
         .addIntegerOption(option =>
-          option.setName('montant').setDescription('Montant à retirer').setRequired(true).setMinValue(1)
+          option
+            .setName('montant')
+            .setDescription('Montant à retirer')
+            .setRequired(true)
+            .setMinValue(1)
         )
         .addStringOption(option =>
-          option.setName('raison').setDescription('Raison RP / MJ').setRequired(false)
+          option
+            .setName('raison')
+            .setDescription('Raison RP / MJ')
+            .setRequired(false)
         )
     ),
 
@@ -77,6 +113,16 @@ module.exports = {
     const amount = interaction.options.getInteger('montant', true);
     const reason = interaction.options.getString('raison') || 'Aucune raison précisée.';
 
+    const reputationField = getReputationField(type);
+
+    if (!reputationField) {
+      await interaction.reply({
+        content: 'Type de réputation invalide.',
+        flags: MessageFlags.Ephemeral
+      });
+      return;
+    }
+
     const profile = await Profile.findOne({
       guildId: interaction.guildId,
       userId: targetUser.id,
@@ -91,28 +137,32 @@ module.exports = {
       return;
     }
 
-    const fieldName = type === 'positive' ? 'positiveReputation' : 'negativeReputation';
-    const oldValue = Number(profile[fieldName]) || 0;
+    const oldPositive = Number(profile.positiveReputation) || 0;
+    const oldNegative = Number(profile.negativeReputation) || 0;
 
     if (subcommand === 'ajouter') {
-      profile[fieldName] = oldValue + amount;
-    } else {
-      profile[fieldName] = Math.max(0, oldValue - amount);
+      profile[reputationField] = (Number(profile[reputationField]) || 0) + amount;
+    } else if (subcommand === 'retirer') {
+      profile[reputationField] = Math.max(0, (Number(profile[reputationField]) || 0) - amount);
     }
 
     await profile.save();
 
-    const positive = Number(profile.positiveReputation) || 0;
-    const negative = Number(profile.negativeReputation) || 0;
-    const balance = positive - negative;
+    const newPositive = Number(profile.positiveReputation) || 0;
+    const newNegative = Number(profile.negativeReputation) || 0;
+    const balance = newPositive - newNegative;
     const balanceText = balance > 0 ? `+${balance}` : `${balance}`;
 
     await interaction.reply({
       content: [
-        `Réputation **${type === 'positive' ? 'positive' : 'négative'}** ${subcommand === 'ajouter' ? 'modifiée' : 'réduite'} pour **${profile.nomPrenom || targetUser.username}** (slot ${slot}).`,
+        `Profil : **${profile.nomPrenom || targetUser.username}** (slot ${slot})`,
+        `Action : **${subcommand}**`,
+        `Type : **${type === 'positive' ? 'réputation positive' : 'réputation négative'}**`,
         `Montant : **${amount}**`,
         `Raison : ${reason}`,
-        `Nouvel état : 🌟 ${positive} • 🕸️ ${negative} • ⚖️ ${balanceText}`
+        '',
+        `Avant : 🌟 ${oldPositive} • 🕸️ ${oldNegative}`,
+        `Après : 🌟 ${newPositive} • 🕸️ ${newNegative} • ⚖️ ${balanceText}`
       ].join('\n'),
       flags: MessageFlags.Ephemeral
     });

@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
-const Rumor = require('../../models/Rumor');
+const Rumor = require('../../models/rumor');
 const { canManageReputation } = require('../../config/permissions');
 const { buildPublishedRumorEmbed } = require('../../utils/rumorEmbeds');
 const { buildPublishedRumorRows } = require('../../utils/rumorComponents');

@@ -129,24 +129,11 @@ function wrapTextCentered(ctx, text, centerX, startY, maxWidth, lineHeight, maxL
   });
 }
 
-function drawNoise(ctx, amount = 120) {
-  for (let i = 0; i < amount; i += 1) {
-    const alpha = Math.random() * 0.06;
-    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-    ctx.fillRect(
-      Math.random() * CANVAS_WIDTH,
-      Math.random() * CANVAS_HEIGHT,
-      1 + Math.random() * 2,
-      1 + Math.random() * 2
-    );
-  }
-}
-
 function drawBackground(ctx) {
   const bg = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-  bg.addColorStop(0, '#0b0d12');
-  bg.addColorStop(0.45, '#12161d');
-  bg.addColorStop(1, '#090b10');
+  bg.addColorStop(0, '#090b10');
+  bg.addColorStop(0.5, '#11151c');
+  bg.addColorStop(1, '#07090d');
 
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -154,32 +141,30 @@ function drawBackground(ctx) {
   const vignette = ctx.createRadialGradient(
     CANVAS_WIDTH / 2,
     CANVAS_HEIGHT / 2,
-    100,
+    120,
     CANVAS_WIDTH / 2,
     CANVAS_HEIGHT / 2,
-    640
+    680
   );
   vignette.addColorStop(0, 'rgba(255,255,255,0.02)');
-  vignette.addColorStop(1, 'rgba(0,0,0,0.55)');
+  vignette.addColorStop(1, 'rgba(0,0,0,0.62)');
   ctx.fillStyle = vignette;
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-  ctx.strokeStyle = 'rgba(212, 179, 102, 0.16)';
+  ctx.strokeStyle = 'rgba(212, 179, 102, 0.10)';
   ctx.lineWidth = 1;
 
-  for (let y = 40; y < CANVAS_HEIGHT; y += 48) {
+  for (let y = 44; y < CANVAS_HEIGHT; y += 52) {
     ctx.beginPath();
-    ctx.moveTo(60, y);
-    ctx.lineTo(CANVAS_WIDTH - 60, y);
+    ctx.moveTo(70, y);
+    ctx.lineTo(CANVAS_WIDTH - 70, y);
     ctx.stroke();
   }
-
-  drawNoise(ctx, 180);
 }
 
 function drawOuterFrame(ctx) {
   drawRoundedRect(ctx, 24, 24, CANVAS_WIDTH - 48, CANVAS_HEIGHT - 48, 28);
-  ctx.fillStyle = 'rgba(18, 20, 26, 0.50)';
+  ctx.fillStyle = 'rgba(18, 20, 26, 0.48)';
   ctx.fill();
   ctx.lineWidth = 3;
   ctx.strokeStyle = 'rgba(197, 161, 86, 0.75)';
@@ -187,7 +172,7 @@ function drawOuterFrame(ctx) {
 
   drawRoundedRect(ctx, 38, 38, CANVAS_WIDTH - 76, CANVAS_HEIGHT - 76, 22);
   ctx.lineWidth = 1.5;
-  ctx.strokeStyle = 'rgba(255, 225, 148, 0.18)';
+  ctx.strokeStyle = 'rgba(255, 225, 148, 0.16)';
   ctx.stroke();
 
   const corners = [
@@ -233,56 +218,133 @@ function drawCenterAura(ctx) {
     40,
     CANVAS_WIDTH / 2,
     360,
-    240
+    250
   );
-  gradient.addColorStop(0, 'rgba(218, 189, 120, 0.18)');
-  gradient.addColorStop(0.4, 'rgba(137, 107, 214, 0.08)');
+  gradient.addColorStop(0, 'rgba(218, 189, 120, 0.15)');
+  gradient.addColorStop(0.35, 'rgba(137, 107, 214, 0.07)');
   gradient.addColorStop(1, 'rgba(0,0,0,0)');
 
   ctx.fillStyle = gradient;
   ctx.beginPath();
-  ctx.arc(CANVAS_WIDTH / 2, 360, 240, 0, Math.PI * 2);
+  ctx.arc(CANVAS_WIDTH / 2, 360, 250, 0, Math.PI * 2);
   ctx.fill();
 }
 
-function drawSilhouette(ctx) {
+function drawHumanSilhouette(ctx) {
   ctx.save();
   ctx.translate(CANVAS_WIDTH / 2, 360);
 
-  ctx.fillStyle = 'rgba(207, 212, 224, 0.10)';
-  ctx.strokeStyle = 'rgba(221, 190, 117, 0.30)';
-  ctx.lineWidth = 3;
+  const bodyGradient = ctx.createLinearGradient(0, -250, 0, 260);
+  bodyGradient.addColorStop(0, 'rgba(230, 226, 214, 0.14)');
+  bodyGradient.addColorStop(0.45, 'rgba(205, 195, 178, 0.10)');
+  bodyGradient.addColorStop(1, 'rgba(170, 165, 155, 0.06)');
 
+  ctx.fillStyle = bodyGradient;
+  ctx.strokeStyle = 'rgba(223, 189, 113, 0.20)';
+  ctx.lineWidth = 2;
+
+  // tête
   ctx.beginPath();
-  ctx.arc(0, -188, 52, 0, Math.PI * 2);
+  ctx.ellipse(0, -198, 42, 50, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
 
-  drawRoundedRect(ctx, -76, -130, 152, 190, 34);
+  // cou
+  drawRoundedRect(ctx, -14, -155, 28, 24, 8);
   ctx.fill();
   ctx.stroke();
 
-  drawRoundedRect(ctx, -142, -105, 40, 168, 20);
-  ctx.fill();
-  ctx.stroke();
-
-  drawRoundedRect(ctx, 102, -105, 40, 168, 20);
-  ctx.fill();
-  ctx.stroke();
-
-  drawRoundedRect(ctx, -60, 70, 48, 168, 20);
-  ctx.fill();
-  ctx.stroke();
-
-  drawRoundedRect(ctx, 12, 70, 48, 168, 20);
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 1.2;
+  // épaules + torse
   ctx.beginPath();
-  ctx.moveTo(0, -135);
-  ctx.lineTo(0, 238);
+  ctx.moveTo(-82, -122);
+  ctx.quadraticCurveTo(-112, -104, -108, -66);
+  ctx.quadraticCurveTo(-102, 8, -70, 78);
+  ctx.quadraticCurveTo(-48, 124, -28, 152);
+  ctx.quadraticCurveTo(-14, 170, 0, 178);
+  ctx.quadraticCurveTo(14, 170, 28, 152);
+  ctx.quadraticCurveTo(48, 124, 70, 78);
+  ctx.quadraticCurveTo(102, 8, 108, -66);
+  ctx.quadraticCurveTo(112, -104, 82, -122);
+  ctx.quadraticCurveTo(44, -144, 0, -136);
+  ctx.quadraticCurveTo(-44, -144, -82, -122);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // bras gauche
+  ctx.beginPath();
+  ctx.moveTo(-86, -106);
+  ctx.quadraticCurveTo(-132, -78, -146, -18);
+  ctx.quadraticCurveTo(-154, 24, -144, 82);
+  ctx.quadraticCurveTo(-136, 124, -118, 152);
+  ctx.quadraticCurveTo(-104, 174, -90, 170);
+  ctx.quadraticCurveTo(-78, 164, -80, 142);
+  ctx.quadraticCurveTo(-86, 108, -92, 72);
+  ctx.quadraticCurveTo(-98, 26, -92, -8);
+  ctx.quadraticCurveTo(-86, -46, -62, -88);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // bras droit
+  ctx.beginPath();
+  ctx.moveTo(86, -106);
+  ctx.quadraticCurveTo(132, -78, 146, -18);
+  ctx.quadraticCurveTo(154, 24, 144, 82);
+  ctx.quadraticCurveTo(136, 124, 118, 152);
+  ctx.quadraticCurveTo(104, 174, 90, 170);
+  ctx.quadraticCurveTo(78, 164, 80, 142);
+  ctx.quadraticCurveTo(86, 108, 92, 72);
+  ctx.quadraticCurveTo(98, 26, 92, -8);
+  ctx.quadraticCurveTo(86, -46, 62, -88);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // bassin
+  ctx.beginPath();
+  ctx.moveTo(-46, 150);
+  ctx.quadraticCurveTo(-18, 174, 0, 178);
+  ctx.quadraticCurveTo(18, 174, 46, 150);
+  ctx.quadraticCurveTo(30, 198, 24, 228);
+  ctx.lineTo(-24, 228);
+  ctx.quadraticCurveTo(-30, 198, -46, 150);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // jambe gauche
+  ctx.beginPath();
+  ctx.moveTo(-22, 228);
+  ctx.quadraticCurveTo(-48, 300, -54, 382);
+  ctx.quadraticCurveTo(-58, 438, -50, 492);
+  ctx.quadraticCurveTo(-44, 530, -26, 534);
+  ctx.quadraticCurveTo(-8, 534, -8, 508);
+  ctx.quadraticCurveTo(-8, 454, -2, 394);
+  ctx.quadraticCurveTo(2, 338, 10, 250);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // jambe droite
+  ctx.beginPath();
+  ctx.moveTo(22, 228);
+  ctx.quadraticCurveTo(48, 300, 54, 382);
+  ctx.quadraticCurveTo(58, 438, 50, 492);
+  ctx.quadraticCurveTo(44, 530, 26, 534);
+  ctx.quadraticCurveTo(8, 534, 8, 508);
+  ctx.quadraticCurveTo(8, 454, 2, 394);
+  ctx.quadraticCurveTo(-2, 338, -10, 250);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // séparation légère centrale
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1.1;
+  ctx.beginPath();
+  ctx.moveTo(0, -132);
+  ctx.quadraticCurveTo(-2, 20, 0, 178);
   ctx.stroke();
 
   ctx.restore();
@@ -471,7 +533,7 @@ async function drawSlot(ctx, slot, equippedData) {
     pos.x + SLOT_SIZE / 2,
     pos.y + SLOT_SIZE / 2,
     CANVAS_WIDTH / 2,
-    slot === 'tete' ? 190 : slot === 'pieds' ? 560 : 360,
+    slot === 'tete' ? 180 : slot === 'pieds' ? 565 : 360,
     glow
   );
 
@@ -577,7 +639,7 @@ async function createInventoryAttachment(profile) {
   drawOuterFrame(ctx);
   drawTitleBlock(ctx, profile);
   drawCenterAura(ctx);
-  drawSilhouette(ctx);
+  drawHumanSilhouette(ctx);
 
   for (const slot of EQUIPMENT_SLOTS) {
     await drawSlot(ctx, slot, profile?.equippedItems?.[slot] || {});

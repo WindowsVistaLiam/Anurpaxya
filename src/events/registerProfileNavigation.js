@@ -1,45 +1,46 @@
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const Profile = require('../models/Profile');
-const { buildProfileEmbed } = require('../utils/profileEmbeds');
-const {
-  buildProfileNavigationRow,
-  buildProfileSlotRow
-} = require('../utils/profileComponents');
-const { getAllProfiles } = require('../services/profileService');
+const { buildProfilePagePayload } = require('../utils/profilePagePayload');
+
+function buildProfileNavigationRows(targetUserId, slot, currentPage) {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`profile_prev:${targetUserId}:${slot}:${currentPage}`)
+        .setEmoji('⬅️')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(currentPage <= 1),
+      new ButtonBuilder()
+        .setCustomId(`profile_next:${targetUserId}:${slot}:${currentPage}`)
+        .setEmoji('➡️')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(currentPage >= 3)
+    )
+  ];
+}
 
 module.exports = function registerProfileNavigation(client) {
   client.on('interactionCreate', async interaction => {
-    if (!interaction.isButton()) return;
-    if (
-      !interaction.customId.startsWith('profile_page:') &&
-      !interaction.customId.startsWith('profile_prev:') &&
-      !interaction.customId.startsWith('profile_next:') &&
-      !interaction.customId.startsWith('profile_slot:')
-    ) {
-      return;
-    }
-
     try {
-      const parts = interaction.customId.split(':');
-      const action = parts[0];
-      const targetUserId = parts[1];
-      const slot = Number(parts[2]);
-      const rawPage = Number(parts[3]);
-      let page = rawPage || 1;
-
-      if (action === 'profile_prev') page = Math.max(1, page - 1);
-      if (action === 'profile_next') page = Math.min(3, page + 1);
-      if (action === 'profile_page') page = Math.min(3, Math.max(1, Number(parts[3]) || 1));
-      if (action === 'profile_slot') page = 1;
-
-      const targetUser = await client.users.fetch(targetUserId).catch(() => null);
-
-      if (!targetUser) {
-        await interaction.reply({
-          content: 'Impossible de retrouver cet utilisateur.',
-          ephemeral: true
-        });
+      if (!interaction.isButton()) return;
+      if (
+        !interaction.customId.startsWith('profile_prev:') &&
+        !interaction.customId.startsWith('profile_next:')
+      ) {
         return;
       }
+
+      const [action, targetUserId, rawSlot, rawPage] = interaction.customId.split(':');
+      const slot = Number(rawSlot);
+      let page = Number(rawPage) || 1;
+
+      if (action === 'profile_prev') {
+        page -= 1;
+      } else {
+        page += 1;
+      }
+
+      page = Math.max(1, Math.min(3, page));
 
       const profile = await Profile.findOne({
         guildId: interaction.guildId,
@@ -49,23 +50,26 @@ module.exports = function registerProfileNavigation(client) {
 
       if (!profile) {
         await interaction.reply({
-          content: 'Ce profil n’existe plus.',
-          ephemeral: true
+          content: 'Ce profil est introuvable.',
+          flags: MessageFlags.Ephemeral
         });
         return;
       }
 
-      const allProfiles = await getAllProfiles(interaction.guildId, targetUserId);
-      const existingSlots = allProfiles.map(entry => entry.slot);
+      const targetUser = await client.users.fetch(targetUserId).catch(() => null);
+      if (!targetUser) {
+        await interaction.reply({
+          content: 'Impossible de retrouver cet utilisateur.',
+          flags: MessageFlags.Ephemeral
+        });
+        return;
+      }
 
-      const embed = buildProfileEmbed(profile, targetUser, interaction.guild, page);
+      const payload = await buildProfilePagePayload(profile, targetUser, interaction.guild, page);
 
       await interaction.update({
-        embeds: [embed],
-        components: [
-          buildProfileSlotRow(targetUserId, slot, existingSlots),
-          buildProfileNavigationRow(targetUserId, slot, page)
-        ]
+        ...payload,
+        components: buildProfileNavigationRows(targetUserId, slot, page)
       });
     } catch (error) {
       console.error('❌ Erreur navigation profil :', error);
@@ -73,12 +77,12 @@ module.exports = function registerProfileNavigation(client) {
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp({
           content: 'Une erreur est survenue pendant la navigation du profil.',
-          ephemeral: true
+          flags: MessageFlags.Ephemeral
         }).catch(() => {});
       } else {
         await interaction.reply({
           content: 'Une erreur est survenue pendant la navigation du profil.',
-          ephemeral: true
+          flags: MessageFlags.Ephemeral
         }).catch(() => {});
       }
     }

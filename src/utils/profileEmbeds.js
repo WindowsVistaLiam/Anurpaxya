@@ -1,5 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 const { getTitleRarityDisplay } = require('./titleUtils');
+const { buildEquipmentSummary } = require('./inventoryCanvas');
 
 function truncate(text, maxLength) {
   if (!text) return 'Non renseigné';
@@ -51,33 +52,26 @@ function formatInventory(inventory = []) {
 
   return inventory
     .slice(0, 20)
-    .map(item => `• **${item.name}** ×${item.quantity}`)
+    .map(item => {
+      const extra = item.equipable && item.equipmentSlot
+        ? ` *(équipable : ${item.equipmentSlot})*`
+        : '';
+      return `• **${item.name}** ×${item.quantity}${extra}`;
+    })
     .join('\n');
 }
 
 function getEquippedTitleDisplay(profile) {
-  if (!profile.equippedTitle) {
-    return 'Aucun titre équipé';
-  }
-
-  if (!Array.isArray(profile.titles) || profile.titles.length === 0) {
-    return profile.equippedTitle;
-  }
+  if (!profile.equippedTitle) return 'Aucun titre équipé';
+  if (!Array.isArray(profile.titles) || profile.titles.length === 0) return profile.equippedTitle;
 
   const equipped = profile.titles.find(title => {
-    if (typeof title === 'string') {
-      return title === profile.equippedTitle;
-    }
+    if (typeof title === 'string') return title === profile.equippedTitle;
     return title.name === profile.equippedTitle;
   });
 
-  if (!equipped) {
-    return profile.equippedTitle;
-  }
-
-  if (typeof equipped === 'string') {
-    return getTitleRarityDisplay(equipped, 'common');
-  }
+  if (!equipped) return profile.equippedTitle;
+  if (typeof equipped === 'string') return getTitleRarityDisplay(equipped, 'common');
 
   return getTitleRarityDisplay(equipped.name, equipped.rarity || 'common');
 }
@@ -176,36 +170,12 @@ function buildProfileEmbed(profile, targetUser, guild, page = 1) {
       })
       .setTitle(`✨ ${profile.nomPrenom || 'Personnage sans nom'} • Slot ${slot}`)
       .addFields(
-        {
-          name: '🪪 Identité',
-          value: profile.nomPrenom || 'Non renseigné',
-          inline: false
-        },
-        {
-          name: '👤 Âge / Genre',
-          value: profile.ageGenre || 'Non renseigné',
-          inline: false
-        },
-        {
-          name: '🔮 Pouvoir / Aptitude',
-          value: truncate(profile.pouvoir || 'Non renseigné', 1024),
-          inline: false
-        },
-        {
-          name: '📝 Description',
-          value: truncate(profile.description || 'Aucune description.', 1024),
-          inline: false
-        },
-        {
-          name: '⭐ Réputation',
-          value: buildReputationSummary(profile),
-          inline: false
-        },
-        {
-          name: '💞 Relations',
-          value: buildRelationsSummary(profile.relations || []),
-          inline: false
-        }
+        { name: '🪪 Identité', value: profile.nomPrenom || 'Non renseigné', inline: false },
+        { name: '👤 Âge / Genre', value: profile.ageGenre || 'Non renseigné', inline: false },
+        { name: '🔮 Pouvoir / Aptitude', value: truncate(profile.pouvoir || 'Non renseigné', 1024), inline: false },
+        { name: '📝 Description', value: truncate(profile.description || 'Aucune description.', 1024), inline: false },
+        { name: '⭐ Réputation', value: buildReputationSummary(profile), inline: false },
+        { name: '💞 Relations', value: buildRelationsSummary(profile.relations || []), inline: false }
       )
       .setFooter(baseFooter)
       .setTimestamp();
@@ -227,26 +197,10 @@ function buildProfileEmbed(profile, targetUser, guild, page = 1) {
       })
       .setTitle(`🧾 Fiche annexe — ${profile.nomPrenom || targetUser.username} • Slot ${slot}`)
       .addFields(
-        {
-          name: '💼 Métier',
-          value: profile.metier || 'Sans métier',
-          inline: false
-        },
-        {
-          name: '🏅 Titre équipé',
-          value: getEquippedTitleDisplay(profile),
-          inline: false
-        },
-        {
-          name: '☣️ Souillure',
-          value: `${buildSouillureBar(souillure)}\n${getSouillureState(souillure)}`,
-          inline: false
-        },
-        {
-          name: '👁️ Présence',
-          value: getPresenceText(souillure),
-          inline: false
-        },
+        { name: '💼 Métier', value: profile.metier || 'Sans métier', inline: false },
+        { name: '🏅 Titre équipé', value: getEquippedTitleDisplay(profile), inline: false },
+        { name: '☣️ Souillure', value: `${buildSouillureBar(souillure)}\n${getSouillureState(souillure)}`, inline: false },
+        { name: '👁️ Présence', value: getPresenceText(souillure), inline: false },
         {
           name: '📈 Progression RP',
           value: [
@@ -275,19 +229,14 @@ function buildProfileEmbed(profile, targetUser, guild, page = 1) {
       name: `🎒 Inventaire de ${targetUser.username}`,
       iconURL: targetUser.displayAvatarURL({ size: 256 })
     })
-    .setTitle(`💰 Inventaire & Portefeuille — ${profile.nomPrenom || targetUser.username} • Slot ${slot}`)
+    .setTitle(`💰 Inventaire & Équipement — ${profile.nomPrenom || targetUser.username} • Slot ${slot}`)
+    .setDescription('L’image ci-dessous représente la silhouette et les emplacements équipés du profil.')
     .addFields(
-      {
-        name: '🪙 Portefeuille',
-        value: `**${wallet}** Crawns`,
-        inline: false
-      },
-      {
-        name: '🎁 Inventaire',
-        value: truncate(formatInventory(profile.inventory), 1024),
-        inline: false
-      }
+      { name: '🪙 Portefeuille', value: `**${wallet}** pièces`, inline: false },
+      { name: '🧩 Équipement', value: buildEquipmentSummary(profile), inline: false },
+      { name: '🎁 Inventaire', value: truncate(formatInventory(profile.inventory), 1024), inline: false }
     )
+    .setImage('attachment://inventaire-silhouette.png')
     .setFooter(baseFooter)
     .setTimestamp();
 }

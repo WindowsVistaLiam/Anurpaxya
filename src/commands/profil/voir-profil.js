@@ -1,64 +1,68 @@
-const { SlashCommandBuilder } = require('discord.js');
-const Profile = require('../../models/Profile');
-const { buildProfileEmbed } = require('../../utils/profileEmbeds');
 const {
-  buildProfileNavigationRow,
-  buildProfileSlotRow
-} = require('../../utils/profileComponents');
-const { getActiveSlot, getAllProfiles } = require('../../services/profileService');
+  SlashCommandBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  MessageFlags
+} = require('discord.js');
+
+const Profile = require('../../models/Profile');
+const { getActiveSlot } = require('../../services/profileService');
+const { buildProfilePagePayload } = require('../../utils/profilePagePayload');
+
+function buildProfileNavigationRows(targetUserId, slot, currentPage) {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`profile_prev:${targetUserId}:${slot}:${currentPage}`)
+        .setEmoji('⬅️')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(currentPage <= 1),
+      new ButtonBuilder()
+        .setCustomId(`profile_next:${targetUserId}:${slot}:${currentPage}`)
+        .setEmoji('➡️')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(currentPage >= 3)
+    )
+  ];
+}
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('voir-profil')
     .setDescription('Voir le profil RP d’un joueur')
     .addUserOption(option =>
-      option
-        .setName('utilisateur')
-        .setDescription('Le joueur dont tu veux voir le profil')
-        .setRequired(false)
+      option.setName('joueur').setDescription('Joueur ciblé').setRequired(false)
     )
     .addIntegerOption(option =>
-      option
-        .setName('slot')
-        .setDescription('Le slot du profil à afficher')
-        .setRequired(false)
-        .setMinValue(1)
-        .setMaxValue(10)
+      option.setName('slot').setDescription('Slot ciblé').setRequired(false).setMinValue(1).setMaxValue(10)
     ),
 
   async execute(interaction) {
-    const targetUser = interaction.options.getUser('utilisateur') || interaction.user;
+    const targetUser = interaction.options.getUser('joueur') || interaction.user;
     const requestedSlot = interaction.options.getInteger('slot');
-    const targetSlot = requestedSlot || await getActiveSlot(interaction.guildId, targetUser.id);
+    const slot = requestedSlot || await getActiveSlot(interaction.guildId, targetUser.id);
 
     const profile = await Profile.findOne({
       guildId: interaction.guildId,
       userId: targetUser.id,
-      slot: targetSlot
+      slot
     }).lean();
 
     if (!profile) {
       await interaction.reply({
-        content:
-          targetUser.id === interaction.user.id
-            ? `Tu n’as pas encore de profil RP dans le **slot ${targetSlot}**.`
-            : `${targetUser.username} n’a pas de profil RP dans le **slot ${targetSlot}**.`,
-        ephemeral: true
+        content: `Aucun profil trouvé pour **${targetUser.username}** dans le **slot ${slot}**.`,
+        flags: MessageFlags.Ephemeral
       });
       return;
     }
 
-    const allProfiles = await getAllProfiles(interaction.guildId, targetUser.id);
-    const existingSlots = allProfiles.map(entry => entry.slot);
-
-    const embed = buildProfileEmbed(profile, targetUser, interaction.guild, 1);
+    const page = 1;
+    const payload = await buildProfilePagePayload(profile, targetUser, interaction.guild, page);
 
     await interaction.reply({
-      embeds: [embed],
-      components: [
-        buildProfileSlotRow(targetUser.id, targetSlot, existingSlots),
-        buildProfileNavigationRow(targetUser.id, targetSlot, 1)
-      ]
+      ...payload,
+      components: buildProfileNavigationRows(targetUser.id, slot, page)
     });
   }
 };

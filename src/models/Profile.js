@@ -1,12 +1,28 @@
 const mongoose = require('mongoose');
 
-const inventoryItemSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true },
-    quantity: { type: Number, default: 1, min: 1 }
+const inventoryItemSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  quantity: { type: Number, default: 1, min: 1 },
+
+  equipable: { type: Boolean, default: false },
+  equipmentSlot: {
+    type: String,
+    enum: [
+      '',
+      'tete',
+      'torse',
+      'jambes',
+      'pieds',
+      'mainDroite',
+      'mainGauche',
+      'accessoire1',
+      'accessoire2'
+    ],
+    default: ''
   },
-  { _id: false }
-);
+
+  icon: { type: String, default: '' } // nom de fichier optionnel dans src/assets/inventory/items/
+});
 
 const titleSchema = new mongoose.Schema(
   {
@@ -36,6 +52,15 @@ const relationSchema = new mongoose.Schema(
   { _id: true }
 );
 
+const equippedSlotSchema = new mongoose.Schema(
+  {
+    inventoryItemId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    itemNameSnapshot: { type: String, default: '' },
+    icon: { type: String, default: '' }
+  },
+  { _id: false }
+);
+
 const profileSchema = new mongoose.Schema(
   {
     guildId: { type: String, required: true, index: true },
@@ -58,6 +83,17 @@ const profileSchema = new mongoose.Schema(
     wallet: { type: Number, default: 0, min: 0 },
     inventory: { type: [inventoryItemSchema], default: [] },
 
+    equippedItems: {
+      tete: { type: equippedSlotSchema, default: () => ({}) },
+      torse: { type: equippedSlotSchema, default: () => ({}) },
+      jambes: { type: equippedSlotSchema, default: () => ({}) },
+      pieds: { type: equippedSlotSchema, default: () => ({}) },
+      mainDroite: { type: equippedSlotSchema, default: () => ({}) },
+      mainGauche: { type: equippedSlotSchema, default: () => ({}) },
+      accessoire1: { type: equippedSlotSchema, default: () => ({}) },
+      accessoire2: { type: equippedSlotSchema, default: () => ({}) }
+    },
+
     souillure: { type: Number, default: 0, min: 0, max: 100 },
 
     positiveReputation: { type: Number, default: 0, min: 0 },
@@ -73,4 +109,4 @@ const profileSchema = new mongoose.Schema(
 
 profileSchema.index({ guildId: 1, userId: 1, slot: 1 }, { unique: true });
 
-module.exports = mongoose.model('Profile', profileSchema);
+module.exports = mongoose.models.Profile || mongoose.model('Profile', profileSchema);

@@ -1,72 +1,68 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const ShopItem = require('../../models/ShopItem');
 const { canManageReputation } = require('../../config/permissions');
-const {
-  clampMarketModifier,
-  applyMarketModifier,
-  formatModifier
-} = require('../../utils/marketUtils');
+const { formatModifier } = require('../../utils/marketUtils');
+
+function getRandomModifier() {
+  return Math.floor(Math.random() * 21) - 10; // -10 → +10
+}
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('market')
-    .setDescription("Modifier le marché d'un objet entre -10% et +10%")
-    .addStringOption(option =>
-      option
-        .setName('item_id')
-        .setDescription("Identifiant de l'objet boutique")
-        .setRequired(true)
-        .setMaxLength(50)
-    )
-    .addIntegerOption(option =>
-      option
-        .setName('variation')
-        .setDescription('Variation de marché entre -10 et +10')
-        .setRequired(true)
-        .setMinValue(-10)
-        .setMaxValue(10)
-    ),
+    .setDescription('Appliquer une variation aléatoire du marché à tous les objets'),
 
   async execute(interaction) {
     if (!canManageReputation(interaction.member)) {
       await interaction.reply({
-        content: "Tu n'as pas la permission d'utiliser cette commande.",
+        content: "Tu n'as pas la permission.",
         flags: MessageFlags.Ephemeral
       });
       return;
     }
 
-    const itemId = interaction.options.getString('item_id', true).trim().toLowerCase();
-    const variation = clampMarketModifier(interaction.options.getInteger('variation', true));
-
-    const item = await ShopItem.findOne({
+    const items = await ShopItem.find({
       guildId: interaction.guildId,
-      itemId
+      isActive: true
     });
 
-    if (!item) {
+    if (items.length === 0) {
       await interaction.reply({
-        content: `Aucun objet trouvé avec l'ID **${itemId}**.`,
+        content: "Aucun objet en boutique.",
         flags: MessageFlags.Ephemeral
       });
       return;
     }
 
-    item.marketModifier = variation;
-    await item.save();
+    const changes = [];
 
-    const effectiveBuy = applyMarketModifier(item.buyPrice, item.marketModifier);
-    const effectiveSell = applyMarketModifier(item.sellPrice, item.marketModifier);
+    for (const item of items) {
+      const old = item.marketModifier || 0;
+      const random = getRandomModifier();
+
+      item.marketModifier = random;
+      await item.save();
+
+      changes.push({
+        name: item.name,
+        old,
+        new: random
+      });
+    }
+
+    // 🔥 résumé (max 10 affichés)
+    const preview = changes.slice(0, 10).map(c =>
+      `• **${c.name}** : ${formatModifier(c.old)} → ${formatModifier(c.new)}`
+    );
+
+    const remaining = changes.length - preview.length;
 
     await interaction.reply({
       content: [
-        `📈 Marché mis à jour pour **${item.name}**`,
-        `ID : **${item.itemId}**`,
-        `Variation : **${formatModifier(item.marketModifier)}**`,
-        `Prix d'achat de base : **${item.buyPrice}**`,
-        `Prix d'achat actuel : **${effectiveBuy}**`,
-        `Prix de revente de base : **${item.sellPrice}**`,
-        `Prix de revente actuel : **${effectiveSell}**`
+        `📊 **Marché mis à jour (${changes.length} objets)**`,
+        '',
+        ...preview,
+        remaining > 0 ? `\n… et **${remaining}** autres objets` : ''
       ].join('\n'),
       flags: MessageFlags.Ephemeral
     });

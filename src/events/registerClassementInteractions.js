@@ -23,17 +23,17 @@ module.exports = function registerClassementInteractions(client) {
       let nextType = type;
       let nextMode = mode;
 
-      if (action === 'prev') {
-        page = Math.max(1, page - 1);
-      } else if (action === 'next') {
-        page += 1;
-      } else if (action === 'mode') {
+      if (action === 'prev') page = Math.max(1, page - 1);
+      if (action === 'next') page += 1;
+
+      if (action === 'mode') {
         nextMode = mode === 'profil' ? 'joueur' : 'profil';
         page = 1;
-      } else if (action === 'type') {
-        const currentIndex = TYPES.indexOf(type);
-        const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % TYPES.length;
-        nextType = TYPES[nextIndex];
+      }
+
+      if (action === 'type') {
+        const index = TYPES.indexOf(type);
+        nextType = TYPES[(index + 1) % TYPES.length];
         page = 1;
       }
 
@@ -51,20 +51,14 @@ module.exports = function registerClassementInteractions(client) {
       });
 
       await interaction.update(payload);
+
     } catch (error) {
       console.error('❌ Erreur interactions classement :', error);
 
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({
-          content: 'Une erreur est survenue pendant la navigation du classement.',
-          flags: MessageFlags.Ephemeral
-        }).catch(() => {});
-      } else {
-        await interaction.reply({
-          content: 'Une erreur est survenue pendant la navigation du classement.',
-          flags: MessageFlags.Ephemeral
-        }).catch(() => {});
-      }
+      await interaction.reply({
+        content: 'Erreur lors de la navigation.',
+        flags: MessageFlags.Ephemeral
+      }).catch(() => {});
     }
   });
 };

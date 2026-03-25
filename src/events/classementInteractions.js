@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const Profile = require('../../models/Profile');
+const Profile = require('../../models/profile');
 
 const TYPES = [
   'titles',

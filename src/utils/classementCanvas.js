@@ -2,7 +2,6 @@ const { createCanvas, loadImage, registerFont } = require('canvas');
 const { AttachmentBuilder } = require('discord.js');
 const path = require('path');
 
-// 🔥 Enregistrement de la police (IMPORTANT)
 registerFont(
   path.join(__dirname, '../assets/fonts/Cinzel-Regular.ttf'),
   { family: 'Cinzel' }
@@ -36,7 +35,7 @@ function drawCircleImage(ctx, img, x, y, size) {
 
 async function loadAvatar(user) {
   try {
-    const url = user.displayAvatarURL({ extension: 'png', size: 256 });
+    const url = user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true });
     return await loadImage(url);
   } catch {
     return null;
@@ -49,6 +48,12 @@ function drawBackground(ctx) {
   g.addColorStop(1, '#05070a');
 
   ctx.fillStyle = g;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  const radial = ctx.createRadialGradient(WIDTH / 2, 120, 60, WIDTH / 2, HEIGHT / 2, 900);
+  radial.addColorStop(0, 'rgba(255,255,255,0.03)');
+  radial.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = radial;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 }
 
@@ -75,8 +80,8 @@ function drawPodium(ctx) {
   }
 }
 
-function drawText(ctx, text, x, y, size = 18, align = 'center') {
-  ctx.fillStyle = '#f5f5f5';
+function drawText(ctx, text, x, y, size = 18, align = 'center', color = '#f5f5f5') {
+  ctx.fillStyle = color;
   ctx.font = `bold ${size}px "Cinzel"`;
   ctx.textAlign = align;
   ctx.fillText(text, x, y);
@@ -92,9 +97,10 @@ async function drawPodiumEntry(ctx, entry, user, rank, x, y) {
   const name = entry.displayName || `User ${entry.userId}`;
   const value = entry.value;
 
-  drawText(ctx, `#${rank}`, x + 50, y - 15, 22);
-  drawText(ctx, name.slice(0, 20), x + 50, y + 120, 18);
-  drawText(ctx, String(value), x + 50, y + 145, 16);
+  // Texte podium : un peu plus bas + en noir
+  drawText(ctx, `#${rank}`, x + 50, y + 4, 22, 'center', '#111111');
+  drawText(ctx, name.slice(0, 20), x + 50, y + 132, 18, 'center', '#111111');
+  drawText(ctx, String(value), x + 50, y + 158, 16, 'center', '#111111');
 }
 
 async function drawList(ctx, entries, usersMap) {
@@ -135,7 +141,7 @@ async function createClassementAttachment({ paginatedItems, usersMap }) {
   const buffer = canvas.toBuffer('image/png');
 
   return new AttachmentBuilder(buffer, {
-    name: 'classement.png'
+    name: 'classement-podium.png'
   });
 }
 

@@ -7,12 +7,22 @@ function getRandomModifier() {
   return Math.floor(Math.random() * 21) - 10;
 }
 
-async function applyToAllItems(guildId, callback) {
-  const items = await ShopItem.find({
+async function findTargetItems(guildId, { itemId = '', category = '' } = {}) {
+  const query = {
     guildId,
     isActive: true
-  });
+  };
 
+  if (itemId) {
+    query.itemId = itemId.trim().toLowerCase();
+  } else if (category) {
+    query.category = category.trim();
+  }
+
+  return ShopItem.find(query);
+}
+
+async function applyToItems(items, callback) {
   const changes = [];
 
   for (const item of items) {
@@ -24,6 +34,8 @@ async function applyToAllItems(guildId, callback) {
 
     changes.push({
       name: item.name,
+      itemId: item.itemId,
+      category: item.category || 'Sans catégorie',
       old,
       new: item.marketModifier
     });
@@ -34,16 +46,28 @@ async function applyToAllItems(guildId, callback) {
 
 function buildPreview(changes) {
   const preview = changes.slice(0, 10).map(change =>
-    `• **${change.name}** : ${formatModifier(change.old)} → ${formatModifier(change.new)}`
+    `• **${change.name}** (\`${change.itemId}\`) : ${formatModifier(change.old)} → ${formatModifier(change.new)}`
   );
 
   const remaining = changes.length - preview.length;
   if (remaining > 0) {
-    preview.push(``);
+    preview.push('');
     preview.push(`… et **${remaining}** autre(s) objet(s)`);
   }
 
   return preview.join('\n');
+}
+
+function buildScopeLabel({ itemId = '', category = '' } = {}) {
+  if (itemId) {
+    return `Objet ciblé : **${itemId}**`;
+  }
+
+  if (category) {
+    return `Catégorie ciblée : **${category}**`;
+  }
+
+  return 'Cible : **toute la boutique**';
 }
 
 module.exports = {
@@ -65,6 +89,20 @@ module.exports = {
             .setDescription('Baisse en pourcentage')
             .setRequired(true)
         )
+        .addStringOption(option =>
+          option
+            .setName('item_id')
+            .setDescription('ID d’un item précis à cibler')
+            .setRequired(false)
+            .setMaxLength(50)
+        )
+        .addStringOption(option =>
+          option
+            .setName('categorie')
+            .setDescription('Catégorie à cibler')
+            .setRequired(false)
+            .setMaxLength(50)
+        )
     )
     .addSubcommand(sub =>
       sub
@@ -76,11 +114,39 @@ module.exports = {
             .setDescription('Hausse en pourcentage')
             .setRequired(true)
         )
+        .addStringOption(option =>
+          option
+            .setName('item_id')
+            .setDescription('ID d’un item précis à cibler')
+            .setRequired(false)
+            .setMaxLength(50)
+        )
+        .addStringOption(option =>
+          option
+            .setName('categorie')
+            .setDescription('Catégorie à cibler')
+            .setRequired(false)
+            .setMaxLength(50)
+        )
     )
     .addSubcommand(sub =>
       sub
         .setName('reset')
-        .setDescription('Remettre le marché à 0% sur tous les objets')
+        .setDescription('Remettre le marché à 0%')
+        .addStringOption(option =>
+          option
+            .setName('item_id')
+            .setDescription('ID d’un item précis à réinitialiser')
+            .setRequired(false)
+            .setMaxLength(50)
+        )
+        .addStringOption(option =>
+          option
+            .setName('categorie')
+            .setDescription('Catégorie à réinitialiser')
+            .setRequired(false)
+            .setMaxLength(50)
+        )
     ),
 
   async execute(interaction) {
@@ -95,11 +161,22 @@ module.exports = {
     const subcommand = interaction.options.getSubcommand();
 
     if (subcommand === 'random') {
-      const changes = await applyToAllItems(interaction.guildId, () => getRandomModifier());
+      const items = await findTargetItems(interaction.guildId);
+
+      if (items.length === 0) {
+        await interaction.reply({
+          content: 'Aucun objet actif en boutique.',
+          flags: MessageFlags.Ephemeral
+        });
+        return;
+      }
+
+      const changes = await applyToItems(items, () => getRandomModifier());
 
       await interaction.reply({
         content: [
           `🎲 **Marché aléatoire appliqué**`,
+          `Cible : **toute la boutique**`,
           `Objets modifiés : **${changes.length}**`,
           '',
           buildPreview(changes)
@@ -111,13 +188,26 @@ module.exports = {
 
     if (subcommand === 'crash') {
       const value = interaction.options.getInteger('valeur', true);
+      const itemId = interaction.options.getString('item_id') || '';
+      const category = interaction.options.getString('categorie') || '';
 
-      const changes = await applyToAllItems(interaction.guildId, (item, old) => old - value);
+      const items = await findTargetItems(interaction.guildId, { itemId, category });
+
+      if (items.length === 0) {
+        await interaction.reply({
+          content: 'Aucun objet correspondant trouvé.',
+          flags: MessageFlags.Ephemeral
+        });
+        return;
+      }
+
+      const changes = await applyToItems(items, (item, old) => old - value);
 
       await interaction.reply({
         content: [
           `💥 **Crash du marché**`,
           `Variation appliquée : **-${value}%**`,
+          buildScopeLabel({ itemId, category }),
           `Objets modifiés : **${changes.length}**`,
           '',
           buildPreview(changes)
@@ -129,13 +219,26 @@ module.exports = {
 
     if (subcommand === 'inflation') {
       const value = interaction.options.getInteger('valeur', true);
+      const itemId = interaction.options.getString('item_id') || '';
+      const category = interaction.options.getString('categorie') || '';
 
-      const changes = await applyToAllItems(interaction.guildId, (item, old) => old + value);
+      const items = await findTargetItems(interaction.guildId, { itemId, category });
+
+      if (items.length === 0) {
+        await interaction.reply({
+          content: 'Aucun objet correspondant trouvé.',
+          flags: MessageFlags.Ephemeral
+        });
+        return;
+      }
+
+      const changes = await applyToItems(items, (item, old) => old + value);
 
       await interaction.reply({
         content: [
           `📈 **Inflation du marché**`,
           `Variation appliquée : **+${value}%**`,
+          buildScopeLabel({ itemId, category }),
           `Objets modifiés : **${changes.length}**`,
           '',
           buildPreview(changes)
@@ -146,12 +249,28 @@ module.exports = {
     }
 
     if (subcommand === 'reset') {
-      const changes = await applyToAllItems(interaction.guildId, () => 0);
+      const itemId = interaction.options.getString('item_id') || '';
+      const category = interaction.options.getString('categorie') || '';
+
+      const items = await findTargetItems(interaction.guildId, { itemId, category });
+
+      if (items.length === 0) {
+        await interaction.reply({
+          content: 'Aucun objet correspondant trouvé.',
+          flags: MessageFlags.Ephemeral
+        });
+        return;
+      }
+
+      const changes = await applyToItems(items, () => 0);
 
       await interaction.reply({
         content: [
           `🧼 **Marché réinitialisé**`,
-          `Objets remis à **0%** : **${changes.length}**`
+          buildScopeLabel({ itemId, category }),
+          `Objets remis à **0%** : **${changes.length}**`,
+          '',
+          buildPreview(changes)
         ].join('\n'),
         flags: MessageFlags.Ephemeral
       });

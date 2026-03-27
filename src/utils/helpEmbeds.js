@@ -115,6 +115,12 @@ function buildHelpEmbed(page = 1, guildName = 'Serveur RP') {
           value: [
             '`/roll` — lancer des dés'
           ].join('\n')
+        },
+        {
+          name: '🗺️ Map',
+          value: [
+            '`/map` — voir les joueurs dans la zone'
+          ].join('\n')
         }
       )
       .setFooter({ text: `${guildName} • Aide • Page 3/4` })

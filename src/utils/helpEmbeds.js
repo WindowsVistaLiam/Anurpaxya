@@ -96,13 +96,6 @@ function buildHelpEmbed(page = 1, guildName = 'Serveur RP') {
       .setDescription('Interactions entre joueurs et mécaniques RP.')
       .addFields(
         {
-          name: '🗣️ Rumeurs',
-          value: [
-            '`/rumeur` — créer une rumeur',
-            'Les rumeurs influencent la réputation'
-          ].join('\n')
-        },
-        {
           name: '⭐ Réputation',
           value: [
             'Positive ou négative selon tes actions',
@@ -111,9 +104,22 @@ function buildHelpEmbed(page = 1, guildName = 'Serveur RP') {
           ].join('\n')
         },
         {
+          name: '🗣️ Rumeurs',
+          value: [
+            '`/rumeur` — créer une rumeur',
+            'Les rumeurs influencent la réputation'
+          ].join('\n')
+        },
+        {
           name: '🎲 RP',
           value: [
             '`/roll` — lancer des dés'
+          ].join('\n')
+        },
+        {
+          name: '🏅 Classement',
+          value: [
+            '`/classement - voir ses différents classements'
           ].join('\n')
         },
         {

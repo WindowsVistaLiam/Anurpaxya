@@ -19,6 +19,7 @@ const registerReputationHistoryNavigation = require('./events/registerReputation
 const registerEquipmentInteractions = require('./events/registerEquipmentInteractions');
 const registerClassementInteractions = require('./events/registerClassementInteractions');
 const registerMapInteractions = require('./events/registerMapInteractions');
+const registerLetterInteractions = require('./events/registerLetterInteractions');
 
 const client = new Client({
   intents: [
@@ -105,6 +106,7 @@ registerReputationHistoryNavigation(client);
 registerEquipmentInteractions(client);
 registerClassementInteractions(client);
 registerMapInteractions(client);
+registerLetterInteractions(client);
 
 (async () => {
   await connectDatabase();
